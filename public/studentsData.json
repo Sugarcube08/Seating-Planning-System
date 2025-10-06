@@ -1,0 +1,204 @@
+{
+  "rooms": [
+    {
+      "roomId": "R101",
+      "roomName": "Room 101",
+      "capacity": 50,
+      "available": true,
+      "benchType": 2,
+      "benchCount": 25,
+      "cols": 5,
+      "rows": 5
+    },
+    {
+      "roomId": "R102",
+      "roomName": "Room 102",
+      "capacity": 42,
+      "available": true,
+      "benchType": 3,
+      "benchCount": 14,
+      "cols": 2,
+      "rows": 7
+    },
+    {
+      "roomId": "R103",
+      "roomName": "Room 103",
+      "capacity": 60,
+      "available": true,
+      "benchType": 4,
+      "benchCount": 15,
+      "cols": 3,
+      "rows": 5
+    },
+    {
+      "roomId": "R104",
+      "roomName": "Room 104",
+      "capacity": 35,
+      "available": true,
+      "benchType": 1,
+      "benchCount": 35,
+      "cols": 5,
+      "rows": 7
+    },
+    {
+      "roomId": "R105",
+      "roomName": "Room 105",
+      "capacity": 70,
+      "available": true,
+      "benchType": 2,
+      "benchCount": 35,
+      "cols": 5,
+      "rows": 7
+    },
+    {
+      "roomId": "R106",
+      "roomName": "Room 106",
+      "capacity": 45,
+      "available": true,
+      "benchType": 3,
+      "benchCount": 15,
+      "cols": 3,
+      "rows": 5
+    },
+    {
+      "roomId": "R107",
+      "roomName": "Room 107",
+      "capacity": 56,
+      "available": true,
+      "benchType": 4,
+      "benchCount": 14,
+      "cols": 2,
+      "rows": 7
+    },
+    {
+      "roomId": "R108",
+      "roomName": "Room 108",
+      "capacity": 50,
+      "available": true,
+      "benchType": 2,
+      "benchCount": 25,
+      "cols": 5,
+      "rows": 5
+    },
+    {
+      "roomId": "R109",
+      "roomName": "Room 109",
+      "capacity": 66,
+      "available": true,
+      "benchType": 3,
+      "benchCount": 22,
+      "cols": 4,
+      "rows": 6
+    },
+    {
+      "roomId": "R110",
+      "roomName": "Room 110",
+      "capacity": 40,
+      "available": true,
+      "benchType": 1,
+      "benchCount": 40,
+      "cols": 5,
+      "rows": 8
+    },
+    {
+      "roomId": "R111",
+      "roomName": "Room 111",
+      "capacity": 52,
+      "available": true,
+      "benchType": 4,
+      "benchCount": 13,
+      "cols": 2,
+      "rows": 7
+    },
+    {
+      "roomId": "R112",
+      "roomName": "Room 112",
+      "capacity": 30,
+      "available": true,
+      "benchType": 2,
+      "benchCount": 15,
+      "cols": 3,
+      "rows": 5
+    },
+    {
+      "roomId": "R113",
+      "roomName": "Room 113",
+      "capacity": 60,
+      "available": true,
+      "benchType": 3,
+      "benchCount": 20,
+      "cols": 4,
+      "rows": 5
+    },
+    {
+      "roomId": "R114",
+      "roomName": "Room 114",
+      "capacity": 45,
+      "available": true,
+      "benchType": 2,
+      "benchCount": 23,
+      "cols": 4,
+      "rows": 6
+    },
+    {
+      "roomId": "R115",
+      "roomName": "Room 115",
+      "capacity": 55,
+      "available": true,
+      "benchType": 1,
+      "benchCount": 55,
+      "cols": 5,
+      "rows": 11
+    }
+  ],
+  "classes": [
+    {
+      "classId": "Class-1",
+      "studentCount": 30
+    },
+    {
+      "classId": "Class-2",
+      "studentCount": 32
+    },
+    {
+      "classId": "Class-3",
+      "studentCount": 35
+    },
+    {
+      "classId": "Class-4",
+      "studentCount": 33
+    },
+    {
+      "classId": "Class-5",
+      "studentCount": 36
+    },
+    {
+      "classId": "Class-6",
+      "studentCount": 38
+    },
+    {
+      "classId": "Class-7",
+      "studentCount": 40
+    },
+    {
+      "classId": "Class-8",
+      "studentCount": 42
+    },
+    {
+      "classId": "Class-9",
+      "studentCount": 39
+    },
+    {
+      "classId": "Class-10",
+      "studentCount": 44
+    },
+    {
+      "classId": "Class-11",
+      "studentCount": 41
+    },
+    {
+      "classId": "Class-12",
+      "studentCount": 45
+    }
+  ]
+}
