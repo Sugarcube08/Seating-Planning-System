@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 
+// NOTE: These types should ideally be imported from a central types file, 
+// but are included here for completeness based on the snippet.
+
 type SeatStatus = {
   seatNumber: number;
   coordinate: string;
@@ -19,6 +22,7 @@ type RoomSeatMap = {
   [roomId: string]: SeatStatus[];
 };
 
+// 💥 RECTIFIED PROPS: Added the new view handler
 type Props = {
   initialRooms: RoomSeatMap;
   initialClasses: GroupedStudents;
@@ -26,12 +30,22 @@ type Props = {
     selectedRooms: RoomSeatMap,
     selectedClasses: GroupedStudents
   ) => void;
+  // Handler for the first button: Updates UI and saves to Session Storage
+  onPreview: () => void; 
+  // Handler for the second button: Saves to Local Storage and clears Session Storage
+  onFinalConfirm: () => void; 
+  // 🆕 NEW: Handler to switch the view to display saved configurations
+  onViewSavedLayouts: () => void;
 };
 
 const SideForm: React.FC<Props> = ({
   initialRooms,
   initialClasses,
   onConfigChange,
+  // 💥 Destructure the correct new handlers
+  onPreview,
+  onFinalConfirm, 
+  onViewSavedLayouts, // 🆕 Destructure new handler
 }) => {
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>(
     Object.keys(initialRooms)
@@ -55,8 +69,9 @@ const SideForm: React.FC<Props> = ({
         : [...prev, classId]
     );
   };
-
-  const handleSubmit = () => {
+  
+  // 💡 HANDLER FOR 'Preview' BUTTON
+  const handlePreview = () => {
     const filteredRooms: RoomSeatMap = {};
     const filteredClasses: GroupedStudents = {};
 
@@ -68,18 +83,34 @@ const SideForm: React.FC<Props> = ({
       filteredClasses[classId] = initialClasses[classId];
     });
 
+    // 1. Send configuration up
     onConfigChange(filteredRooms, filteredClasses);
+    
+    // 2. Trigger session save
+    onPreview();
+    
+    alert('Configuration previewed!');
   };
 
+  // 💡 HANDLER FOR 'Confirm and Save Final' BUTTON
+  const handleFinalSubmit = () => {
+    onFinalConfirm();
+  };
+
+  // 💡 HANDLER FOR 'Reset' BUTTON
   const resetData = () => {
-    // uncheck all checkboxes
+    // 1. Clear session storage (to remove temporary unavailable seats)
+    sessionStorage.removeItem("classroomMappingData_TEMP");
+
+    // 2. Uncheck all checkboxes visually by setting state to empty arrays
     setSelectedRoomIds([]);
     setSelectedClassIds([]);
 
-    const filteredRooms: RoomSeatMap = {};
-    const filteredClasses: GroupedStudents = {};
-
-    onConfigChange(filteredRooms, filteredClasses);
+    // 3. Immediately update the parent state to reflect an empty configuration, 
+    // forcing the room cards section to become empty.
+    onConfigChange({}, {}); 
+    
+    alert('Configuration reset. All selections cleared.');
   };
 
   return (
@@ -122,11 +153,28 @@ const SideForm: React.FC<Props> = ({
         </div>
       </div>
 
+      {/* 💥 FIRST BUTTON: Preview */}
       <button
-        onClick={handleSubmit}
+        onClick={handlePreview}
         className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition"
       >
-        Confirm Selection
+        Preview
+      </button>
+
+      {/* 💥 SECOND BUTTON: Confirm and Save Final */}
+      <button
+        onClick={handleFinalSubmit}
+        className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition"
+      >
+        Confirm and Save Final
+      </button>
+
+      {/* 💥 NEW BUTTON: View Saved Layouts */}
+      <button
+        onClick={onViewSavedLayouts}
+        className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded transition"
+      >
+        View Saved Layouts
       </button>
 
       {/* reset button, uncheck all and reset to initial */}
