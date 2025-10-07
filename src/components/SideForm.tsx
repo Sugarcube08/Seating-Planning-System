@@ -71,6 +71,17 @@ const SideForm: React.FC<Props> = ({
     onConfigChange(filteredRooms, filteredClasses);
   };
 
+  const resetData = () => {
+    // uncheck all checkboxes
+    setSelectedRoomIds([]);
+    setSelectedClassIds([]);
+
+    const filteredRooms: RoomSeatMap = {};
+    const filteredClasses: GroupedStudents = {};
+
+    onConfigChange(filteredRooms, filteredClasses);
+  };
+
   return (
     <div className="bg-white h-full p-6 rounded-lg shadow-xl w-full border border-gray-200 overflow-y-auto">
       <h2 className="text-lg font-bold mb-4">Seating Configuration ⚙️</h2>
@@ -116,6 +127,14 @@ const SideForm: React.FC<Props> = ({
         className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition"
       >
         Confirm Selection
+      </button>
+
+      {/* reset button, uncheck all and reset to initial */}
+      <button
+        onClick={resetData}
+        className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition"
+      >
+        Reset
       </button>
     </div>
   );
