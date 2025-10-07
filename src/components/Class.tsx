@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import useSeatMapper from "../useCustomHooks/useSeatMapper";
 import SideForm from "./SideForm";
-import RoomCard from "./RoomCard"; // ✅ Import the new component
+import RoomCard from "./RoomCard"; 
 
 type Room = {
   roomId: string;

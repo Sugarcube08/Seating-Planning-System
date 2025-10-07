@@ -16,7 +16,7 @@ const getBenchInfo = (coordinate: string) => {
 
 type SeatMapperResult = {
   seatMap: SeatAssignment;
-  unseatedStudents: { [classId: string]: number }; // count of unseated students per class
+  unseatedStudents: { [classId: string]: number };
 };
 
 
@@ -25,6 +25,7 @@ const useSeatMapper = ({ roomSeats, studentsByClass }: UseSeatMapperProps): Seat
     const seatMap: SeatAssignment = {};
     const allSeats: (SeatStatus & { roomId: string })[] = [];
 
+    // Sort all seats by room and coordinate
     for (const [roomId, seats] of Object.entries(roomSeats)) {
       seats.sort((a, b) => a.coordinate.localeCompare(b.coordinate));
 
@@ -36,15 +37,14 @@ const useSeatMapper = ({ roomSeats, studentsByClass }: UseSeatMapperProps): Seat
     }
 
     const usedSeats = new Set<string>();
-    const sortedClassIds = Object.keys(studentsByClass).sort(
-      (a, b) => studentsByClass[b].length - studentsByClass[a].length
-    );
+    const sortedClassIds = Object.keys(studentsByClass).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 
     allSeats.sort(
       (a, b) =>
         a.roomId.localeCompare(b.roomId) || a.coordinate.localeCompare(b.coordinate)
     );
 
+    // Assign seats to students
     const classRoomIndex: Record<
       string,
       { roomId: string | null; seatIndex: number | null }
