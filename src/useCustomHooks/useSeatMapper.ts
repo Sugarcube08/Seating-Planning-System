@@ -20,6 +20,16 @@ type SeatMapperResult = {
 };
 
 
+const getPriorityMap = (benchSize: number): number[] => {
+  // Assuming the parsed seatIndex is 0-based
+  if (benchSize === 2) return [0, 1]; // 0 -> 1
+  if (benchSize === 3) return [0, 2, 1]; // 0 -> 2 -> 1
+  if (benchSize === 4) return [0, 3, 1, 2]; // 0 -> 3 -> 1 -> 2
+
+  // Default for other sizes (simple sequential)
+  return Array.from({ length: benchSize }, (_, i) => i);
+};
+
 const useSeatMapper = ({ roomSeats, studentsByClass }: UseSeatMapperProps): SeatMapperResult => {
   return useMemo(() => {
     const seatMap: SeatAssignment = {};
@@ -78,8 +88,11 @@ const useSeatMapper = ({ roomSeats, studentsByClass }: UseSeatMapperProps): Seat
           continue;
         }
 
+
         if (lastRoomId === null || lastRoomId !== currentRoomId) {
           let lowestAvailableIndex: number | null = null;
+
+          // --- ---- ---- NEED TO CHANGED: APPLY GET PRIORITY MAP HERE ---- ---- ----
 
           for (let k = seatIndexPointer; k < allSeats.length; k++) {
             const checkSeat = allSeats[k];
@@ -92,13 +105,15 @@ const useSeatMapper = ({ roomSeats, studentsByClass }: UseSeatMapperProps): Seat
               break;
             }
           }
-
           if (lowestAvailableIndex !== null) {
             preferredIndex = lowestAvailableIndex;
           } else {
             seatIndexPointer++;
             continue;
           }
+
+          // --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+
         }
 
         if (preferredIndex !== null && seatIndex !== preferredIndex) {
