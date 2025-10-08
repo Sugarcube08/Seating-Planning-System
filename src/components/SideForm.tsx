@@ -118,9 +118,6 @@ const SideForm: React.FC<Props> = ({
     setSelectedRoomIds([]);
     setSelectedClassIds([]);
     onConfigChange({}, {});
-    onApplyFilters(); 
-
-    alert('Configuration reset. All selections cleared.');
     setFiltersApplied(true);
   }, [onConfigChange, onApplyFilters, isReadOnly]);
 

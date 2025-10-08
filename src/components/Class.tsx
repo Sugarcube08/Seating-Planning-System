@@ -198,7 +198,7 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
         {filteredClasses.map((cls) => (<LegendItem key={cls.classId} label={cls.classId} color={classColorMap[cls.classId]} />))}
       </section>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 pb-20">
         {filteredRooms.map((room) => (
           <RoomCard
             key={room.roomId}
@@ -323,14 +323,6 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
             </div>
           ) : (
             <>
-              <button
-                onClick={handlePreviewAndTempSave}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM19 12a7 7 0 00-7-7c-2.4 0-4.6 1-6.3 2.7l1.4 1.4-2.8 2.8c-1.7 1.7-2.7 3.9-2.7 6.3a7 7 0 007 7c2.4 0 4.6-1 6.3-2.7l-1.4-1.4 2.8-2.8c1.7-1.7 2.7-3.9 2.7-6.3z"></path></svg>
-                Preview & Save Draft
-              </button>
-
               <button
                 onClick={handleFinalConfirm}
                 className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg"

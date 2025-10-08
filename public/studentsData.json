@@ -7,8 +7,8 @@
       "available": true,
       "benchType": 2,
       "benchCount": 25,
-      "cols": 5,
-      "rows": 5
+      "rows": 5,
+      "cols": 5
     },
     {
       "roomId": "R102",
@@ -17,8 +17,8 @@
       "available": true,
       "benchType": 3,
       "benchCount": 14,
-      "cols": 2,
-      "rows": 7
+      "rows": 2,
+      "cols": 7
     },
     {
       "roomId": "R103",
@@ -27,8 +27,8 @@
       "available": true,
       "benchType": 4,
       "benchCount": 15,
-      "cols": 3,
-      "rows": 5
+      "rows": 3,
+      "cols": 5
     },
     {
       "roomId": "R104",
@@ -37,8 +37,8 @@
       "available": true,
       "benchType": 1,
       "benchCount": 35,
-      "cols": 5,
-      "rows": 7
+      "rows": 5,
+      "cols": 7
     },
     {
       "roomId": "R105",
@@ -47,8 +47,8 @@
       "available": true,
       "benchType": 2,
       "benchCount": 35,
-      "cols": 5,
-      "rows": 7
+      "rows": 5,
+      "cols": 7
     },
     {
       "roomId": "R106",
@@ -57,8 +57,8 @@
       "available": true,
       "benchType": 3,
       "benchCount": 15,
-      "cols": 3,
-      "rows": 5
+      "rows": 3,
+      "cols": 5
     },
     {
       "roomId": "R107",
@@ -67,8 +67,8 @@
       "available": true,
       "benchType": 4,
       "benchCount": 14,
-      "cols": 2,
-      "rows": 7
+      "rows": 2,
+      "cols": 7
     },
     {
       "roomId": "R108",
@@ -77,8 +77,8 @@
       "available": true,
       "benchType": 2,
       "benchCount": 25,
-      "cols": 5,
-      "rows": 5
+      "rows": 5,
+      "cols": 5
     },
     {
       "roomId": "R109",
@@ -87,8 +87,8 @@
       "available": true,
       "benchType": 3,
       "benchCount": 22,
-      "cols": 4,
-      "rows": 6
+      "rows": 4,
+      "cols": 6
     },
     {
       "roomId": "R110",
@@ -97,8 +97,8 @@
       "available": true,
       "benchType": 1,
       "benchCount": 40,
-      "cols": 5,
-      "rows": 8
+      "rows": 5,
+      "cols": 8
     },
     {
       "roomId": "R111",
@@ -107,8 +107,8 @@
       "available": true,
       "benchType": 4,
       "benchCount": 13,
-      "cols": 2,
-      "rows": 7
+      "rows": 2,
+      "cols": 7
     },
     {
       "roomId": "R112",
@@ -117,8 +117,8 @@
       "available": true,
       "benchType": 2,
       "benchCount": 15,
-      "cols": 3,
-      "rows": 5
+      "rows": 3,
+      "cols": 5
     },
     {
       "roomId": "R113",
@@ -127,8 +127,8 @@
       "available": true,
       "benchType": 3,
       "benchCount": 20,
-      "cols": 4,
-      "rows": 5
+      "rows": 4,
+      "cols": 5
     },
     {
       "roomId": "R114",
@@ -137,8 +137,8 @@
       "available": true,
       "benchType": 2,
       "benchCount": 23,
-      "cols": 4,
-      "rows": 6
+      "rows": 4,
+      "cols": 6
     },
     {
       "roomId": "R115",
@@ -147,8 +147,8 @@
       "available": true,
       "benchType": 1,
       "benchCount": 55,
-      "cols": 5,
-      "rows": 11
+      "rows": 5,
+      "cols": 11
     }
   ],
   "classes": [
