@@ -1,28 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 
-// NOTE: These types should ideally be imported from a central types file, 
-// but are included here for completeness based on the snippet.
 
-type SeatStatus = {
-  seatNumber: number;
-  coordinate: string;
-  status: "available" | "unavailable";
-};
-
-type Student = {
-  studentId: string;
-  classId: string;
-};
-
-type GroupedStudents = {
-  [classId: string]: Student[];
-};
-
-type RoomSeatMap = {
-  [roomId: string]: SeatStatus[];
-};
-
-// 💥 RECTIFIED PROPS: Added the new view handler
+type SeatStatus = { status: 'available' | 'unavailable' }; 
+type Student = { studentId: string; classId: string };
+type GroupedStudents = { [classId: string]: Student[] };
+type RoomSeatMap = { [roomId: string]: SeatStatus[] };
 type Props = {
   initialRooms: RoomSeatMap;
   initialClasses: GroupedStudents;
@@ -30,160 +12,174 @@ type Props = {
     selectedRooms: RoomSeatMap,
     selectedClasses: GroupedStudents
   ) => void;
-  // Handler for the first button: Updates UI and saves to Session Storage
-  onPreview: () => void; 
-  // Handler for the second button: Saves to Local Storage and clears Session Storage
-  onFinalConfirm: () => void; 
-  // 🆕 NEW: Handler to switch the view to display saved configurations
-  onViewSavedLayouts: () => void;
+  onApplyFilters: () => void;
+  isReadOnly: boolean; 
+};
+type SelectionListProps = {
+  title: string;
+  dataKeys: string[];
+  selectedKeys: string[];
+  onToggle: (key: string) => void;
+  accentClass: string;
+  isReadOnly: boolean; 
 };
 
+const SelectionList: React.FC<SelectionListProps> = ({
+  title,
+  dataKeys,
+  selectedKeys,
+  onToggle,
+  accentClass,
+  isReadOnly, 
+}) => (
+  <div className="mb-6">
+    <h3 className="text-sm font-medium text-gray-700 mb-2">{title}</h3>
+    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-2">
+      {dataKeys.map((key) => (
+        <label key={key} className={`flex items-center space-x-2 ${isReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+          <input
+            type="checkbox"
+            className={`accent-${accentClass}-600 form-checkbox h-4 w-4`}
+            checked={selectedKeys.includes(key)}
+            onChange={() => onToggle(key)}
+            disabled={isReadOnly} 
+          />
+          <span className="text-sm text-gray-700">{key}</span>
+        </label>
+      ))}
+    </div>
+  </div>
+);
 const SideForm: React.FC<Props> = ({
   initialRooms,
   initialClasses,
   onConfigChange,
-  // 💥 Destructure the correct new handlers
-  onPreview,
-  onFinalConfirm, 
-  onViewSavedLayouts, // 🆕 Destructure new handler
+  onApplyFilters,
+  isReadOnly, 
 }) => {
-  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>(
+  const [filtersApplied, setFiltersApplied] = useState(true);
+
+  const [selectedRoomIds, setSelectedRoomIds] = useState(() =>
     Object.keys(initialRooms)
   );
-  const [selectedClassIds, setSelectedClassIds] = useState<string[]>(
+  const [selectedClassIds, setSelectedClassIds] = useState(() =>
     Object.keys(initialClasses)
   );
+  useEffect(() => {
+    if (!isReadOnly) {
+        setFiltersApplied(false);
+    }
+  }, [selectedRoomIds, selectedClassIds, isReadOnly]);
 
-  const handleRoomToggle = (roomId: string) => {
-    setSelectedRoomIds((prev) =>
-      prev.includes(roomId)
-        ? prev.filter((id) => id !== roomId)
-        : [...prev, roomId]
-    );
-  };
+  useEffect(() => {
+    if (isReadOnly) {
+        setFiltersApplied(true);
+    }
+  }, [isReadOnly]);
 
-  const handleClassToggle = (classId: string) => {
-    setSelectedClassIds((prev) =>
-      prev.includes(classId)
-        ? prev.filter((id) => id !== classId)
-        : [...prev, classId]
-    );
-  };
-  
-  // 💡 HANDLER FOR 'Preview' BUTTON
-  const handlePreview = () => {
-    const filteredRooms: RoomSeatMap = {};
-    const filteredClasses: GroupedStudents = {};
 
-    selectedRoomIds.forEach((roomId) => {
-      filteredRooms[roomId] = initialRooms[roomId];
-    });
+  const createToggleHandler = useCallback(
+    (setState: React.Dispatch<React.SetStateAction<string[]>>) =>
+      (id: string) => {
+        setState((prev) =>
+          prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+      },
+    []
+  );
 
-    selectedClassIds.forEach((classId) => {
-      filteredClasses[classId] = initialClasses[classId];
-    });
+  const handleRoomToggle = createToggleHandler(setSelectedRoomIds);
+  const handleClassToggle = createToggleHandler(setSelectedClassIds);
+  const handleApplyFilters = useCallback(() => {
+    if (isReadOnly) return;
 
-    // 1. Send configuration up
+    const filterData = <T extends {}>(initialData: T, selectedIds: string[]) =>
+      selectedIds.reduce((acc, id) => {
+        if (initialData[id as keyof T]) {
+          acc[id as keyof T] = initialData[id as keyof T];
+        }
+        return acc;
+      }, {} as T);
+
+    const filteredRooms = filterData(initialRooms, selectedRoomIds) as RoomSeatMap;
+    const filteredClasses = filterData(initialClasses, selectedClassIds) as GroupedStudents;
+
     onConfigChange(filteredRooms, filteredClasses);
-    
-    // 2. Trigger session save
-    onPreview();
-    
-    alert('Configuration previewed!');
-  };
+    onApplyFilters(); 
 
-  // 💡 HANDLER FOR 'Confirm and Save Final' BUTTON
-  const handleFinalSubmit = () => {
-    onFinalConfirm();
-  };
+    setFiltersApplied(true);
 
-  // 💡 HANDLER FOR 'Reset' BUTTON
-  const resetData = () => {
-    // 1. Clear session storage (to remove temporary unavailable seats)
-    sessionStorage.removeItem("classroomMappingData_TEMP");
+  }, [selectedRoomIds, selectedClassIds, initialRooms, initialClasses, onConfigChange, onApplyFilters, isReadOnly]);
 
-    // 2. Uncheck all checkboxes visually by setting state to empty arrays
+  const resetData = useCallback(() => {
+    if (isReadOnly) return;
+
+    sessionStorage.removeItem('classroomMappingData_TEMP');
     setSelectedRoomIds([]);
     setSelectedClassIds([]);
+    onConfigChange({}, {});
+    onApplyFilters(); 
 
-    // 3. Immediately update the parent state to reflect an empty configuration, 
-    // forcing the room cards section to become empty.
-    onConfigChange({}, {}); 
-    
     alert('Configuration reset. All selections cleared.');
-  };
+    setFiltersApplied(true);
+  }, [onConfigChange, onApplyFilters, isReadOnly]);
 
+  const roomKeys = useMemo(() => Object.keys(initialRooms), [initialRooms]);
+  const classKeys = useMemo(() => Object.keys(initialClasses), [initialClasses]);
+
+  const applyButtonDisabled = filtersApplied || isReadOnly;
   return (
-    <div className="bg-white h-full p-6 rounded-lg shadow-xl w-full border border-gray-200 overflow-y-auto">
-      <h2 className="text-lg font-bold mb-4">Seating Configuration ⚙️</h2>
+    <div className="bg-white h-full p-4 rounded-lg w-full overflow-y-auto flex flex-col">
+      <h2 className="text-xl font-bold mb-6 text-gray-800">Filter Configuration</h2>
+      
+      <div className="flex-grow">
+        <SelectionList
+          title="Select Rooms"
+          dataKeys={roomKeys}
+          selectedKeys={selectedRoomIds}
+          onToggle={handleRoomToggle}
+          accentClass="blue"
+          isReadOnly={isReadOnly} 
+        />
 
-      {/* Rooms */}
-      <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Select Rooms</h3>
-        <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
-          {Object.keys(initialRooms).map((roomId) => (
-            <label key={roomId} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                className="accent-blue-600"
-                checked={selectedRoomIds.includes(roomId)}
-                onChange={() => handleRoomToggle(roomId)}
-              />
-              <span className="text-sm text-gray-700">{roomId}</span>
-            </label>
-          ))}
-        </div>
+        <SelectionList
+          title="Select Classes"
+          dataKeys={classKeys}
+          selectedKeys={selectedClassIds}
+          onToggle={handleClassToggle}
+          accentClass="green"
+          isReadOnly={isReadOnly}
+        />
       </div>
-
-      {/* Classes */}
-      <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Select Classes</h3>
-        <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
-          {Object.keys(initialClasses).map((classId) => (
-            <label key={classId} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                className="accent-green-600"
-                checked={selectedClassIds.includes(classId)}
-                onChange={() => handleClassToggle(classId)}
-              />
-              <span className="text-sm text-gray-700">{classId}</span>
-            </label>
-          ))}
-        </div>
+      <div className="mt-6 pt-4 border-t border-gray-200 flex-shrink-0 space-y-3">
+        {isReadOnly && (
+            <p className="text-sm text-center text-gray-500 italic mb-2">
+                Unlock editing in the main panel to apply filters.
+            </p>
+        )}
+        
+        <button
+          onClick={handleApplyFilters}
+          disabled={applyButtonDisabled} 
+          className={`w-full font-bold py-2.5 px-4 rounded-lg transition-all flex items-center justify-center gap-2 ${
+            applyButtonDisabled
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+          }`}
+        >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0012 15.586V19l-2 2v-4.414a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+          {filtersApplied ? 'Filters Applied' : 'Apply Filters'}
+        </button>
+        <button
+          onClick={resetData}
+          disabled={isReadOnly} 
+          className={`w-full font-medium py-2 px-4 rounded-lg transition border ${
+            isReadOnly ? 'border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed' : 'bg-red-50 hover:bg-red-100 text-red-600 border-red-300'
+          }`}
+        >
+          Clear All Selections
+        </button>
       </div>
-
-      {/* 💥 FIRST BUTTON: Preview */}
-      <button
-        onClick={handlePreview}
-        className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition"
-      >
-        Preview
-      </button>
-
-      {/* 💥 SECOND BUTTON: Confirm and Save Final */}
-      <button
-        onClick={handleFinalSubmit}
-        className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition"
-      >
-        Confirm and Save Final
-      </button>
-
-      {/* 💥 NEW BUTTON: View Saved Layouts */}
-      <button
-        onClick={onViewSavedLayouts}
-        className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded transition"
-      >
-        View Saved Layouts
-      </button>
-
-      {/* reset button, uncheck all and reset to initial */}
-      <button
-        onClick={resetData}
-        className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition"
-      >
-        Reset
-      </button>
     </div>
   );
 };

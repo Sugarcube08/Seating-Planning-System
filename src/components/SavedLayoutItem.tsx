@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-
-// --- Type Definitions (Must match ClassLayout) ---
+import useExportCSV from '../useCustomHooks/useExportCSV';
 type SeatStatus = {
     seatNumber: number;
     coordinate: string;
@@ -20,11 +19,13 @@ type GroupedStudents = {
     [classId: string]: Student[];
 };
 
+type SeatAssignment = Record<string, Student>;
+
 type SavedLayoutConfig = {
     key: string;
     configId: string;
     timestamp: string;
-    seatAssignments: Record<string, Student>;
+    seatAssignments: SeatAssignment;
     roomConfiguration: RoomSeatMap;
     studentConfiguration: GroupedStudents;
 };
@@ -37,20 +38,15 @@ type Props = {
     onOpenLayout: (layout: SavedLayoutConfig) => void; 
 };
 
-// --- Main SavedLayoutItem Component ---
-
 const SavedLayoutItem: React.FC<Props> = ({ layout, index, totalCount, onDelete, onOpenLayout }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-
-    // Calculate layout number (1st, 2nd, 3rd, etc., ordered newest first)
     const layoutNumber = totalCount - index;
-    
-    // Calculate student summary
     const totalStudents = Object.values(layout.studentConfiguration).reduce((sum, students) => sum + students.length, 0);
+    const handleExport = useExportCSV(layout.seatAssignments);
+    const totalSeatsAssigned = Object.keys(layout.seatAssignments).length;
 
     return (
         <div className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300">
-            {/* Clickable Header Bar */}
             <div
                 className="p-4 cursor-pointer flex justify-between items-center border-b border-gray-100 hover:bg-gray-50 transition"
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -84,17 +80,23 @@ const SavedLayoutItem: React.FC<Props> = ({ layout, index, totalCount, onDelete,
                     </svg>
                 </div>
             </div>
-
-            {/* Detailed Content (Conditionally Rendered) */}
             {isExpanded && (
                 <div className="p-4 border-t border-gray-200 bg-gray-50">
                     <div className="text-sm space-y-2 mb-4">
                         <p><strong>Config ID:</strong> <span className="font-mono text-xs">{layout.configId}</span></p>
                         <p><strong>Classes Included:</strong> {Object.keys(layout.studentConfiguration).join(', ')}</p>
-                        <p><strong>Total Seats Assigned:</strong> {Object.keys(layout.seatAssignments).length}</p>
+                        <p><strong>Total Seats Assigned:</strong> {totalSeatsAssigned}</p>
                     </div>
                     
-                    {/* 💥 NEW BUTTON: Open Layout */}
+                    {/* 2. Add the Export button */}
+                    <button
+                        onClick={handleExport}
+                        disabled={totalSeatsAssigned === 0}
+                        className="w-full py-2 mb-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition shadow-md disabled:bg-gray-400"
+                    >
+                        Export Assignments to CSV ({totalSeatsAssigned}) 📄
+                    </button>
+                    
                     <button
                         onClick={() => onOpenLayout(layout)}
                         className="w-full py-2 mb-4 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 transition shadow-md"
@@ -104,13 +106,10 @@ const SavedLayoutItem: React.FC<Props> = ({ layout, index, totalCount, onDelete,
 
                     <h4 className="text-base font-bold text-gray-700 mt-4 mb-2">Filtered Rooms Summary</h4>
                     <ul className="list-disc list-inside text-sm text-gray-600 pl-4 space-y-1">
-                        {/* Summary of which rooms were included in this save */}
                         {Object.keys(layout.roomConfiguration).map((roomId) => (
                             <li key={roomId}>Room: {roomId}</li>
                         ))}
                     </ul>
-
-                    {/* Delete Button at the bottom of the expanded section */}
                     <button 
                         onClick={() => onDelete(layout.key)} 
                         className="mt-4 text-xs font-medium text-red-600 hover:text-white hover:bg-red-600 transition p-2 rounded-lg border border-red-300"
