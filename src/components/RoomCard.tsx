@@ -61,19 +61,36 @@ const RoomCard: React.FC<Props> = ({
       <div
         className="grid gap-2"
         style={{
-          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${rows}, 3rem)`,
+          // *** VIEW TRANSFORMATION (Transposed) ***
+          // Swapping rows and cols in the grid definition
+          // columns are now defined by 'rows', rows are defined by 'cols'
+          gridTemplateColumns: `repeat(${rows}, minmax(0, 1fr))`, // Cols now match original 'rows'
+          gridTemplateRows: `repeat(${cols}, 3rem)`,               // Rows now match original 'cols'
         }}
       >
         {/* Iterate over benches (cells) */}
         {Array.from({ length: totalCells }).map((_, i) => {
-          const row = Math.floor(i / cols);
+          
+          // *** DATA/COORDINATE LOGIC (UNMODIFIED) ***
+          // The data processing logic must remain row-major (based on original 'cols')
+          // to correctly link to the 'seatMap' keys.
+          const row = Math.floor(i / cols); 
           const col = i % cols;
+          
+          // To make the item visually appear at the transposed coordinate (col, row):
+          // The item at data coordinate (R, C) is now placed at visual grid position (C, R).
+          const visualGridColumn = row + 1; // Original row becomes visual column
+          const visualGridRow = col + 1;    // Original col becomes visual row
 
           return (
             <div
               key={i}
               className="relative flex border border-gray-300 rounded-lg shadow-sm overflow-hidden"
+              // Explicitly place the item in the transposed grid position
+              style={{
+                gridColumnStart: visualGridColumn,
+                gridRowStart: visualGridRow
+              }}
             >
               {/* Iterate over seats within the bench */}
               {Array.from({ length: benchType }, (_, sIndex) => {
