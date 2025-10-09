@@ -1,7 +1,0 @@
-sort classes according to the class number(not class strength)
-
-sort rooms according to the room number(serialization)
-
-If bench is 3 seater, accomodate from left, right then middle,  
-
-if bench is 4 seater, accomodate from leaving 1 index
