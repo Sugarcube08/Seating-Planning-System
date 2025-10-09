@@ -106,7 +106,7 @@ const RoomCard: React.FC<Props> = ({
                   ? '#ef4444' // Red: Unavailable
                   : isAssigned
                     ? classColorMap[assignment!.classId] || '#9ca3af' // Class Color: Assigned
-                    : '#2563eb'; // Blue: Available
+                    : '#808080'; // Blue: Available
 
                 const text = isUnavailable ? 'X' : isAssigned ? assignment!.studentId : `${sIndex + 1}`;
                 
