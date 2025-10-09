@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 
 
-type SeatStatus = { status: 'available' | 'unavailable' }; 
+type SeatStatus = { seatNumber: number; coordinate: string; status: 'available' | 'unavailable' }; 
 type Student = { studentId: string; classId: string };
 type GroupedStudents = { [classId: string]: Student[] };
 type RoomSeatMap = { [roomId: string]: SeatStatus[] };
@@ -13,7 +13,9 @@ type Props = {
     selectedClasses: GroupedStudents
   ) => void;
   onApplyFilters: () => void;
-  isReadOnly: boolean; 
+  isReadOnly: boolean;
+  lockedRoomIds?: string[];
+  lockedClassIds?: string[];
 };
 type SelectionListProps = {
   title: string;
@@ -21,7 +23,8 @@ type SelectionListProps = {
   selectedKeys: string[];
   onToggle: (key: string) => void;
   accentClass: string;
-  isReadOnly: boolean; 
+  isReadOnly: boolean;
+  lockedKeys?: string[];
 };
 
 const SelectionList: React.FC<SelectionListProps> = ({
@@ -30,23 +33,35 @@ const SelectionList: React.FC<SelectionListProps> = ({
   selectedKeys,
   onToggle,
   accentClass,
-  isReadOnly, 
+  isReadOnly,
+  lockedKeys = [],
 }) => (
   <div className="mb-6">
     <h3 className="text-sm font-medium text-gray-700 mb-2">{title}</h3>
     <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-2">
-      {dataKeys.map((key) => (
-        <label key={key} className={`flex items-center space-x-2 ${isReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
-          <input
-            type="checkbox"
-            className={`accent-${accentClass}-600 form-checkbox h-4 w-4`}
-            checked={selectedKeys.includes(key)}
-            onChange={() => onToggle(key)}
-            disabled={isReadOnly} 
-          />
-          <span className="text-sm text-gray-700">{key}</span>
-        </label>
-      ))}
+      {dataKeys.map((key) => {
+        const isLocked = lockedKeys.includes(key);
+        const isDisabled = isReadOnly || isLocked;
+        return (
+          <label key={key} className={`flex items-center space-x-2 ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+            <input
+              type="checkbox"
+              className={`accent-${accentClass}-600 form-checkbox h-4 w-4`}
+              checked={selectedKeys.includes(key)}
+              onChange={() => onToggle(key)}
+              disabled={isDisabled}
+            />
+            <span className="text-sm text-gray-700 flex items-center gap-1">
+              {key}
+              {isLocked && (
+                <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+              )}
+            </span>
+          </label>
+        );
+      })}
     </div>
   </div>
 );
@@ -55,7 +70,9 @@ const SideForm: React.FC<Props> = ({
   initialClasses,
   onConfigChange,
   onApplyFilters,
-  isReadOnly, 
+  isReadOnly,
+  lockedRoomIds = [],
+  lockedClassIds = [],
 }) => {
   const [filtersApplied, setFiltersApplied] = useState(true);
 
@@ -76,6 +93,25 @@ const SideForm: React.FC<Props> = ({
         setFiltersApplied(true);
     }
   }, [isReadOnly]);
+
+  // Auto-select locked items when they are provided
+  useEffect(() => {
+    if (lockedRoomIds.length > 0) {
+      setSelectedRoomIds(prev => {
+        const newSelection = [...new Set([...prev, ...lockedRoomIds])];
+        return newSelection;
+      });
+    }
+  }, [lockedRoomIds]);
+
+  useEffect(() => {
+    if (lockedClassIds.length > 0) {
+      setSelectedClassIds(prev => {
+        const newSelection = [...new Set([...prev, ...lockedClassIds])];
+        return newSelection;
+      });
+    }
+  }, [lockedClassIds]);
 
 
   const createToggleHandler = useCallback(
@@ -136,7 +172,8 @@ const SideForm: React.FC<Props> = ({
           selectedKeys={selectedRoomIds}
           onToggle={handleRoomToggle}
           accentClass="blue"
-          isReadOnly={isReadOnly} 
+          isReadOnly={isReadOnly}
+          lockedKeys={lockedRoomIds}
         />
 
         <SelectionList
@@ -146,12 +183,18 @@ const SideForm: React.FC<Props> = ({
           onToggle={handleClassToggle}
           accentClass="green"
           isReadOnly={isReadOnly}
+          lockedKeys={lockedClassIds}
         />
       </div>
       <div className="mt-6 pt-4 border-t border-gray-200 flex-shrink-0 space-y-3">
         {isReadOnly && (
             <p className="text-sm text-center text-gray-500 italic mb-2">
                 Unlock editing in the main panel to apply filters.
+            </p>
+        )}
+        {(lockedRoomIds.length > 0 || lockedClassIds.length > 0) && !isReadOnly && (
+            <p className="text-sm text-center text-blue-600 italic mb-2">
+                🔒 Locked selections cannot be modified when editing saved layouts.
             </p>
         )}
         

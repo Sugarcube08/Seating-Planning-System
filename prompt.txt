@@ -1,0 +1,71 @@
+@. analyse the complete codebase
+
+there is a problem, 
+Create, Read and Delete operations are there but update operation is lacking
+
+when i load the layout it's editing is lock by default and which is i wanted, but when i unlock the settings i want that to work after that assigned seats, so what i want is that 
+whatever classes and rooms are selected on that layout that should be reflect as "selected" in the sidebar, and that selection should not be deselected on that, and when i try to select new classes to be seated, they should seat on the rest of available seat instead of hampering the preseted layout
+
+update the string in that case, that's the update, no new string will be generated
+
+some more updates,
+update color of available seats to 808080
+when i'm seeing the layout in locked mode it's not showing the available seats initially when it's locked, it's availables seats are filled with class color that should be shown when the seat is reserved, 
+
+one more thing
+understand the test case
+i've taken a room with 3 seater bench, and alloted class 1,2 in that room, they are seated leaving middle index, i've saved the layout, now i've entered to the layout, and now first error is i already explained, now when i unlock then
+1. selections of the sidebar is still togglable, what i wanted to be fixed,
+2. and then i've selected class 3 for the same room, so the 3rd class which should start seating from the middle is not doing so, class 3 is seating in place of 2
+
+
+not working.
+
+selected a room with 3 seateer benched, another room with 2 seater benches
+alloted class 1 2
+first room index 0 filled with class 1, 2nd index filled with class 2
+second room's index 0 filled with class 1 and end at bench 5, and index 1 filled with class 2 ended at bench 8,
+saved the layout
+
+loaded the layout, unlocked to edit,
+added class 3, class 3 filled middle row of room 1 and continued to room 2 from bench 6 just from behind class 1 because of lowest index, 
+now room 1 is completely filled,
+and room 2 has seats from bench 9,
+i added class 4 but instead of continuing from bench 9 it just made all student as unseated,
+
+
+also when i press clear selection i want that all the locked selection should aslo  be unlocked, but it didn't,
+on pressing clear selection all the side bar should be reset
+
+
+class allotment still not working,
+let me help you with idea, 
+
+when the filter is applied for update, you should traverse throughout the rooms from beginig, because if i also add a new room and in case that room is between 2 filled classes then there will be some conflicts, so
+traverse though out the rooms from starting,
+if any smallest index available found, start seating from there
+but also follow that every student of a class should follow a single index, which means if first student of a class seated at index 2 then that complete class will be seated at index 2 in that same class, index can be reset when they go to next class and can acuire the lowest index available, 
+
+okay i have a new idea, whenever apply filter pressed it sends the object of room and classes,
+
+
+if that is the case of updation ,
+preprocess the passing room object 
+check all the seats from that saved layout object and sending room object, if the seat is already assigned then update the status of that seat to unavialable form available in the passing object, then pass the object, and when we recieve the retuning object of assignments, we'll added both newly processed and current saved object,
+
+
+okay i catched the error, as we were preprocessing and eleminating those seates which was already filled by updating their status to unavailable,
+
+so the problem is that we are not filtering those student's who already got the seat, we have to clean them too form the class object that is going to be passes
+
+on both cases, on updation and on new assingment too, currently when i try to update the layout and add class 3 in and apply filter, rest of the student of class 1 which are not seated yet starts to sit from middle
+
+
+i think instead of filtering seated student we should mark their seatid with them by which we can apply the new seating on seeing those students seat id, using this we can get that if this bench already have student of same class or not
+
+
+
+
+there is also new error, now the new room allotment is voilated, whenever prev room fills up and class moves to new room, it should start to be seated form very begining if class is empty, or else form the lowest available index
+
+

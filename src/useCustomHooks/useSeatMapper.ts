@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-type SeatStatus = { seatNumber: number; coordinate: string; status: 'available' };
+type SeatStatus = { seatNumber: number; coordinate: string; status: 'available' | 'unavailable' };
 type RoomSeatMap = { [roomId: string]: SeatStatus[] };
 type Student = { studentId: string; classId: string };
 type GroupedStudents = { [classId: string]: Student[] };

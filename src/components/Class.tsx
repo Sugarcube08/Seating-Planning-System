@@ -5,7 +5,7 @@ import RoomCard from './RoomCard';
 import SavedLayoutItem from './SavedLayoutItem';
 
 
-type Room = { roomId: string; rows: number; cols: number; benchType: number; available: boolean };
+type Room = { roomId: string; roomName: string; capacity: number; available: boolean; benchType: number; benchCount: number; cols: number; rows: number };
 type SeatStatus = { seatNumber: number; coordinate: string; status: 'available' | 'unavailable' };
 type RoomSeatMap = { [roomId: string]: SeatStatus[] };
 type ClassData = { classId: string; studentCount: number };
@@ -74,7 +74,9 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
   const [selectedGroupedStudents, setSelectedGroupedStudents] = useState<GroupedStudents>(fullGroupedStudents);
   const [viewMode, setViewMode] = useState<'config' | 'saved'>('config');
   const [savedLayouts, setSavedLayouts] = useState<SavedLayoutConfig[]>([]);
-  const [isReadOnly, setIsReadOnly] = useState(false); 
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [lockedRoomIds, setLockedRoomIds] = useState<string[]>([]);
+  const [lockedClassIds, setLockedClassIds] = useState<string[]>([]); 
   const { seatMap, unseatedStudents } = useSeatMapper({ roomSeats: selectedRoomSeatMap, studentsByClass: selectedGroupedStudents });
   
   const loadSavedLayouts = useCallback(() => {
@@ -159,7 +161,13 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
   }, [seatMap, selectedRoomSeatMap, selectedGroupedStudents, viewMode, loadSavedLayouts]);
 
   const handleViewSavedLayouts = useCallback(() => { loadSavedLayouts(); setViewMode('saved'); }, [loadSavedLayouts]);
-  const handleViewConfig = useCallback(() => { setViewMode('config'); setIsReadOnly(false); }, []); 
+  const handleViewConfig = useCallback(() => { 
+    setViewMode('config'); 
+    setIsReadOnly(false);
+    // Clear locked selections when starting new configuration
+    setLockedRoomIds([]);
+    setLockedClassIds([]);
+  }, []); 
   
   const handleDeleteLayout = useCallback((key: string) => {
     try {
@@ -175,7 +183,14 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
     setSelectedRoomSeatMap(layout.roomConfiguration);
     setSelectedGroupedStudents(layout.studentConfiguration);
     setViewMode('config');
-    setIsReadOnly(true); 
+    setIsReadOnly(true);
+    
+    // Set locked selections based on the saved layout
+    const layoutRoomIds = Object.keys(layout.roomConfiguration);
+    const layoutClassIds = Object.keys(layout.studentConfiguration);
+    setLockedRoomIds(layoutRoomIds);
+    setLockedClassIds(layoutClassIds);
+    
     alert(`Successfully loaded configuration ID: ${layout.configId}. Editing is currently locked.`); 
   }, []);
   
@@ -298,6 +313,8 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
             onConfigChange={handleConfigurationUpdate}
             onApplyFilters={handlePreviewAndTempSave}
             isReadOnly={isReadOnly}
+            lockedRoomIds={lockedRoomIds}
+            lockedClassIds={lockedClassIds}
           />
         </aside>
         <main className="flex-grow flex flex-col p-4 pr-6 overflow-y-hidden">
@@ -314,7 +331,10 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
             <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-600 font-medium italic">Configuration is Read-Only.</span>
                 <button
-                    onClick={() => setIsReadOnly(false)} 
+                    onClick={() => {
+                      setIsReadOnly(false);
+                      // Keep locked selections when unlocking for editing
+                    }} 
                     className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
