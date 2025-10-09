@@ -208,7 +208,7 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
       )}
       
       <section className="flex flex-wrap justify-center gap-4 md:gap-6 mb-6 text-gray-700 font-medium">
-        <LegendItem color="#2563eb" label="Available Seat" />
+        <LegendItem color="#808080" label="Available Seat" />
         <LegendItem color="#ef4444" label="Unavailable Seat" />
         {filteredClasses.map((cls) => (<LegendItem key={cls.classId} label={cls.classId} color={classColorMap[cls.classId]} />))}
       </section>

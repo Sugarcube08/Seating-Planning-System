@@ -139,16 +139,6 @@
       "benchCount": 23,
       "rows": 4,
       "cols": 6
-    },
-    {
-      "roomId": "R115",
-      "roomName": "Room 115",
-      "capacity": 55,
-      "available": true,
-      "benchType": 1,
-      "benchCount": 55,
-      "rows": 5,
-      "cols": 11
     }
   ],
   "classes": [
