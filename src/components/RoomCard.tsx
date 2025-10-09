@@ -49,7 +49,7 @@ const RoomCard: React.FC<Props> = ({
   return (
     <div
       key={roomId}
-      className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xl transition-all duration-300 hover:shadow-2xl"
+      className="bg-gray-200 border border-gray-200 rounded-3xl p-6 shadow-xl transition-all duration-300 hover:shadow-2xl"
     >
       {/* Room Header */}
       <div className="flex justify-between items-center mb-4 border-b pb-3">
@@ -86,7 +86,7 @@ const RoomCard: React.FC<Props> = ({
           return (
             <div
               key={i}
-              className="relative flex border-2 border-indigo-100 bg-indigo-50/50 rounded-xl shadow-inner p-0.5" // Enhanced bench container style
+              className="relative flex border-2 border-indigo-100 bg-indigo-50/50 rounded-xl shadow-inner p-0.5" 
               style={{
                 gridColumnStart: visualGridColumn,
                 gridRowStart: visualGridRow

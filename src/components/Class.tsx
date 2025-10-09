@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // Assuming paths are correct
 import useSeatMapper from '../useCustomHooks/useSeatMapper'; 
 import SideForm from './SideForm'; 
 import RoomCard from './RoomCard'; 
-import SavedLayoutItem from './SavedLayoutItem'; 
-
-// --- TYPE DEFINITIONS (Unchanged for brevity and focus) ---
+import SavedLayoutItem from './SavedLayoutItem';
 type Room = { roomId: string; roomName: string; capacity: number; available: boolean; benchType: number; benchCount: number; cols: number; rows: number };
 type SeatStatus = { seatNumber: number; coordinate: string; status: 'available' | 'unavailable' };
 type RoomSeatMap = { [roomId: string]: SeatStatus[] };
@@ -20,7 +18,8 @@ type SavedLayoutConfig = {
   roomConfiguration: RoomSeatMap;
   studentConfiguration: GroupedStudents;
 };
-// --- UTILITY FUNCTIONS (Unchanged for brevity and focus) ---
+
+// --- UTILITY FUNCTIONS (Unchanged) ---
 const getClassColorMap = (classes: ClassData[]) => {
   const colorPalette = [
     '#1abc9c', '#3498db', '#9b59b6', '#e67e22', '#f1c40f', '#e74c3c', '#2ecc71',
@@ -60,20 +59,25 @@ const convertRoomsToSeats = (rooms: Room[]): RoomSeatMap =>
     return roomMap;
   }, {} as RoomSeatMap);
 
-// --- UPDATED LegendItem Component ---
+// --- UPDATED LegendItem Component (Consistent Styling) ---
 const LegendItem = ({ color, label }: { color: string; label: string }) => (
   <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg shadow-sm">
     <div className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: color }}></div>
     <span className="text-xs font-medium text-gray-700">{label}</span>
   </div>
 );
+
 // --- MAIN COMPONENT ---
 const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassData[] } }) => {
   if (!students?.rooms || !students?.classes) {
     return <p className="text-center text-gray-500 mt-10">Loading classrooms...</p>;
   }
   
-  // --- STATE AND MEMOIZATION (Unchanged) ---
+  // --- NEW STATE FOR RESPONSIVENESS (TOGGLE) ---
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
+  
+  // --- STATE AND MEMOIZATION (Existing) ---
   const fullRoomSeatMap = useMemo(() => convertRoomsToSeats(students.rooms), [students.rooms]);
   const fullGroupedStudents = useMemo(() => groupStudentsByClass(students.classes), [students.classes]);
   const [selectedRoomSeatMap, setSelectedRoomSeatMap] = useState<RoomSeatMap>(fullRoomSeatMap);
@@ -85,8 +89,8 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
   const [lockedClassIds, setLockedClassIds] = useState<string[]>([]); 
   const { seatMap, unseatedStudents } = useSeatMapper({ roomSeats: selectedRoomSeatMap, studentsByClass: selectedGroupedStudents });
   
-  // --- HANDLERS (Unchanged, except for styling in alerts/logs) ---
-  const loadSavedLayouts = useCallback(() => { /* ... (Logic unchanged) */
+  // --- HANDLERS (Unchanged logic, minor alert/log style adjustment) ---
+  const loadSavedLayouts = useCallback(() => { 
     try {
       const loaded = Object.keys(localStorage)
         .filter((key) => key.startsWith('FinalLayouts_C-'))
@@ -96,7 +100,6 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
         })
         .filter((item): item is SavedLayoutConfig => item !== null)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
       setSavedLayouts(loaded);
     } catch (error) {
       console.error('Failed to load saved layouts:', error);
@@ -104,15 +107,13 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
     }
   }, []);
   
-  useEffect(() => { /* ... (Logic unchanged) */
+  useEffect(() => { 
     try {
       const stored = sessionStorage.getItem('classroomMappingData_TEMP');
       if (!stored) return;
       const storedData = JSON.parse(stored);
-
       storedData.roomConfiguration && setSelectedRoomSeatMap(storedData.roomConfiguration);
       storedData.studentConfiguration && setSelectedGroupedStudents(storedData.studentConfiguration);
-      // console.log('Restored config from session storage.'); // Removed console.log
     } catch (error) {
       console.warn('Could not load temporary data:', error);
       sessionStorage.removeItem('classroomMappingData_TEMP');
@@ -149,7 +150,6 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
     const data = { timestamp: new Date().toISOString(), seatAssignments: seatMap, roomConfiguration: selectedRoomSeatMap, studentConfiguration: selectedGroupedStudents };
     try {
       sessionStorage.setItem('classroomMappingData_TEMP', JSON.stringify(data));
-      // console.log('Configuration saved as draft.'); // Removed console.log
     } catch (e) {
       console.error('Error saving data:', e);
     }
@@ -172,7 +172,6 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
   const handleViewConfig = useCallback(() => { 
     setViewMode('config'); 
     setIsReadOnly(false);
-    // Clear locked selections when starting new configuration
     setLockedRoomIds([]);
     setLockedClassIds([]);
   }, []); 
@@ -193,23 +192,21 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
     setViewMode('config');
     setIsReadOnly(true);
     
-    // Set locked selections based on the saved layout
     const layoutRoomIds = Object.keys(layout.roomConfiguration);
     const layoutClassIds = Object.keys(layout.studentConfiguration);
     setLockedRoomIds(layoutRoomIds);
     setLockedClassIds(layoutClassIds);
     
     alert(`Successfully loaded configuration ID: ${layout.configId}. Editing is currently locked.`); 
+    setIsSidebarOpen(false);
   }, []);
   
   // Data for Render
   const filteredClasses = students.classes.filter((cls) => Object.keys(selectedGroupedStudents).includes(cls.classId));
   const filteredRooms = students.rooms.filter((room) => Object.keys(selectedRoomSeatMap).includes(room.roomId));
   const classColorMap = getClassColorMap(filteredClasses);
-
-  // --- RENDER FUNCTIONS (Styling Updated) ---
   const renderConfigurationView = () => (
-    <div className="pt-4 pb-20"> {/* Added padding for separation */}
+    <div className="pt-4 pb-20"> 
       {isReadOnly && (
         <div className="p-4 mb-6 bg-indigo-100 text-indigo-800 rounded-xl text-center font-semibold border border-indigo-300 shadow-md">
           <span className="flex items-center justify-center gap-2">
@@ -218,19 +215,24 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
           </span>
         </div>
       )}
-      
-      {/* Moved Legend to a more prominent position/style */}
-      <section className="flex flex-wrap items-center gap-3 p-4 bg-white rounded-xl shadow-lg mb-6 border border-gray-100">
+      <section className="flex flex-wrap items-center gap-3 p-4 bg-gray-200 rounded-xl shadow-lg mb-6 border border-gray-100">
         <h3 className="text-md font-bold text-gray-700 mr-4">Legend:</h3>
-        <LegendItem color="#e5e7eb" label="Available Seat" /> {/* Updated color for better contrast */}
+        
+        {/* Static Legends */}
+        <LegendItem color="#e5e7eb" label="Available Seat" /> 
         <LegendItem color="#ef4444" label="Unavailable Seat" />
-        <LegendItem color="transparent" label="Assigned Seat (Colored by Class)" />
-        {/* Class-specific legends are now optional/moved to sideform for space */}
+        
+        {/* Dynamic Legends for each Active Class */}
+        {filteredClasses.map((cls) => (
+          <LegendItem 
+            key={cls.classId} 
+            color={classColorMap[cls.classId]} 
+            label={`Class: ${cls.classId}`} 
+          />
+        ))}
       </section>
-
-      {/* Unseated Students Alert - Sticky Banner Style */}
       {Object.entries(unseatedStudents).length > 0 && (
-        <section className="sticky top-16 z-20 p-4 mb-6 bg-red-100 border-l-4 border-red-500 rounded-xl shadow-lg transition-all duration-300">
+        <section className="sticky top-20 lg:top-16 z-20 p-4 mb-6 bg-red-100 border-l-4 border-red-500 rounded-xl shadow-lg transition-all duration-300">
           <h2 className="text-xl font-bold mb-2 text-red-700 flex items-center gap-2">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.398 18c-.77 1.333.192 3 1.732 3z"></path></svg>
             CRITICAL: Unseated Students Detected!
@@ -250,7 +252,6 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
         </section>
       )}
 
-      {/* Room Cards - Grid Layout Enhanced */}
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8">
         {filteredRooms.map((room) => (
           <RoomCard
@@ -267,13 +268,13 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
   );
 
   const renderConfigTabs = () => (
-    <div className="flex justify-between items-end border-b-2 border-gray-200 pb-0 sticky top-0 bg-white z-30 shadow-sm">
+    <div className="flex justify-between items-end border-b-2 border-gray-200 pb-0 sticky top-0 lg:top-0 bg-gray-200 rounded z-30 shadow-sm">
       <div className="flex space-x-2">
         <button
           onClick={handleViewConfig}
           className={`px-5 py-3 flex items-center gap-2 font-semibold transition rounded-t-lg ${
             viewMode === 'config'
-              ? 'border-b-4 border-indigo-600 text-indigo-700 bg-indigo-50/50'
+              ? 'border-b-4 border-indigo-600 text-indigo-700 bg-indigo-50/50' 
               : 'text-gray-600 hover:text-indigo-500 hover:bg-gray-100'
           }`}
         >
@@ -322,15 +323,37 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
   );
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      {/* HEADER */}
-      <h1 className="text-3xl md:text-4xl font-extrabold text-center text-gray-800 p-4 border-b bg-white sticky top-0 z-40 shadow-lg">
-        Classroom Seating Manager 🧑‍🏫
-      </h1>
+    <div className="bg-gray-50 min-h-screen">
+      {/* --- HEADER/NAVBAR (Includes Mobile Toggle Button) --- */}
+      <header className="flex justify-between items-center text-3xl md:text-4xl font-extrabold text-gray-800 p-4 border-b bg-gray-200 sticky top-0 z-40 shadow-lg">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-indigo-800">
+            Examination Seating Manager 🧑‍🏫
+        </h1>
+        {/* Mobile Toggle Button */}
+        <button
+            onClick={toggleSidebar}
+            className="lg:hidden p-2 text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg"
+        >
+            {isSidebarOpen ? (
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg> // Close Icon
+            ) : (
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg> // Menu Icon
+            )}
+        </button>
+      </header>
 
-      <div className="flex h-[calc(100vh-4.5rem)] overflow-hidden"> {/* Adjusted height to account for smaller header */}
-        {/* SIDEBAR (Wider and styled) */}
-        <aside className="w-80 lg:w-96 flex-shrink-0 bg-white border-r border-gray-200 p-6 overflow-y-auto shadow-xl">
+      <div className="flex h-[calc(100vh-4.5rem)] overflow-hidden"> 
+        
+        <aside 
+          className={`
+            w-80 lg:w-96 flex-shrink-0 bg-white border-r border-gray-200 p-6 overflow-y-auto shadow-xl transition-transform duration-300 ease-in-out
+            // Mobile: Fixed, Off-Screen by default
+            fixed top-[4.5rem] bottom-0 z-30
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+            // Desktop: Static, Always Visible
+            lg:static lg:translate-x-0
+          `}
+        >
           <SideForm
             initialRooms={fullRoomSeatMap}
             initialClasses={fullGroupedStudents}
@@ -341,28 +364,35 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
             lockedClassIds={lockedClassIds}
           />
         </aside>
-        
-        {/* MAIN CONTENT */}
-        <main className="flex-grow flex flex-col p-6 overflow-y-hidden">
+        <main className="flex-grow flex flex-col p-4 lg:p-6 overflow-y-hidden">
           {renderConfigTabs()}
           
           <div className="flex-grow overflow-y-auto">
             {viewMode === 'config' ? renderConfigurationView() : renderSavedLayoutsView()}
           </div>
         </main>
+
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black opacity-50 z-20 lg:hidden"
+            onClick={toggleSidebar}
+          ></div>
+        )}
       </div>
-      
-      {/* STICKY FOOTER / ACTION BAR */}
       {viewMode === 'config' && (
-        <div className="fixed bottom-0 left-80 lg:left-96 right-0 bg-white border-t-2 border-gray-200 shadow-2xl p-4 flex justify-end gap-4 z-50">
+        <div 
+          className={`
+            fixed bottom-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl p-4 flex justify-end gap-4 z-50 transition-all duration-300
+            // Dynamic width/position based on sidebar state
+            left-0 
+            lg:left-96 
+          `}
+        >
           {isReadOnly ? (
             <div className="flex items-center gap-4">
                 <span className="text-base text-gray-600 font-medium italic">Layout is currently locked.</span>
                 <button
-                    onClick={() => {
-                      setIsReadOnly(false);
-                      // Keep locked selections when unlocking for editing
-                    }} 
+                    onClick={() => { setIsReadOnly(false); }} 
                     className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-full transition shadow-lg transform hover:scale-[1.02]"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -372,8 +402,9 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
           ) : (
             <button
                 onClick={handleFinalConfirm}
+                // Updated color to Indigo for the primary action
                 className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full transition shadow-xl transform hover:scale-[1.02] disabled:bg-gray-400"
-                disabled={Object.entries(unseatedStudents).length > 0} // Disable if unseated students exist
+                disabled={Object.entries(unseatedStudents).length > 0} 
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Confirm & Save Final Layout
