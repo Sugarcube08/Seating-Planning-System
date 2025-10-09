@@ -13,9 +13,14 @@ type Props = {
   classColorMap: Record<string, string>;
   onSeatToggle: (roomId: string, coordinate: string) => void;
 };
+
+/**
+ * Retrieves the consolidated status and assignment data for a specific seat.
+ */
 const getSeatData = (roomId: string, coordinate: string, seatMap: Record<string, Student>, roomSeats: SeatStatus[]) => {
   const seatStatus = roomSeats.find((s) => s.coordinate === coordinate);
   const seatNumber = seatStatus?.seatNumber ?? 0;
+  // Seat assignment key is unique across all rooms/seats
   const assignmentKey = `seat${seatNumber}:${roomId}:${coordinate}`;
   
   return {
@@ -32,103 +37,118 @@ const RoomCard: React.FC<Props> = ({
   classColorMap, 
   onSeatToggle 
 }) => {
-  // 1. Destructuring: Combined with aliasing for conciseness
   const { roomId, roomName, rows, cols, benchType, available } = room;
   const totalCells = rows * cols;
   const roomSeats = roomSeatMap[roomId] || [];
   
+  // Dynamic class for the room availability badge
   const availabilityBadgeClass = available 
-    ? "bg-green-100 text-green-700" 
-    : "bg-red-100 text-red-700";
+    ? "bg-green-50 text-green-700 border-green-200" 
+    : "bg-red-50 text-red-700 border-red-200";
 
   return (
     <div
       key={roomId}
-      className="bg-white border border-gray-200 rounded-2xl p-5 shadow-md hover:shadow-lg transition-shadow duration-300"
+      className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xl transition-all duration-300 hover:shadow-2xl"
     >
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-semibold text-gray-800">{roomName}</h2>
-        {/* 2. CSS Class Conciseness */}
-        <span className={`px-2 py-1 text-xs rounded-full font-medium ${availabilityBadgeClass}`}>
-          {available ? 'Available' : 'Unavailable'}
+      {/* Room Header */}
+      <div className="flex justify-between items-center mb-4 border-b pb-3">
+        <h2 className="text-xl font-bold text-gray-800">{roomName}</h2>
+        <span className={`px-3 py-1 text-sm rounded-full font-medium border ${availabilityBadgeClass}`}>
+          {available ? 'Available' : 'Closed'}
         </span>
       </div>
 
-      <p className="text-sm text-gray-500 mb-4">
-        {rows} rows × {cols} cols | Bench: {benchType}-seater
+      <p className="text-sm text-gray-500 mb-5 italic">
+        Configuration: {rows} rows × {cols} columns | {benchType}-seater benches
       </p>
 
+      {/* Seating Grid Container */}
       <div
-        className="grid gap-2"
+        className="grid gap-3 p-2 bg-gray-50 rounded-xl border border-gray-100"
         style={{
-          // *** VIEW TRANSFORMATION (Transposed) ***
-          // Swapping rows and cols in the grid definition
-          // columns are now defined by 'rows', rows are defined by 'cols'
-          gridTemplateColumns: `repeat(${rows}, minmax(0, 1fr))`, // Cols now match original 'rows'
-          gridTemplateRows: `repeat(${cols}, 3rem)`,               // Rows now match original 'cols'
+          // Use CSS grid to create the transposed view (columns = original rows)
+          gridTemplateColumns: `repeat(${rows}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${cols}, 4rem)`, // Increased row height for better look
         }}
       >
         {/* Iterate over benches (cells) */}
         {Array.from({ length: totalCells }).map((_, i) => {
           
-          // *** DATA/COORDINATE LOGIC (UNMODIFIED) ***
-          // The data processing logic must remain row-major (based on original 'cols')
-          // to correctly link to the 'seatMap' keys.
+          // Data coordinates (Row-Major index)
           const row = Math.floor(i / cols); 
           const col = i % cols;
           
-          // To make the item visually appear at the transposed coordinate (col, row):
-          // The item at data coordinate (R, C) is now placed at visual grid position (C, R).
-          const visualGridColumn = row + 1; // Original row becomes visual column
-          const visualGridRow = col + 1;    // Original col becomes visual row
+          // Visual Transposed coordinates: (R, C) is now placed at visual grid position (C, R)
+          const visualGridColumn = row + 1;
+          const visualGridRow = col + 1;
 
           return (
             <div
               key={i}
-              className="relative flex border border-gray-300 rounded-lg shadow-sm overflow-hidden"
-              // Explicitly place the item in the transposed grid position
+              className="relative flex border-2 border-indigo-100 bg-indigo-50/50 rounded-xl shadow-inner p-0.5" // Enhanced bench container style
               style={{
                 gridColumnStart: visualGridColumn,
                 gridRowStart: visualGridRow
               }}
             >
+              {/* Bench Number Label (less intrusive) */}
+              <span className="absolute -top-3 right-1 text-[10px] text-gray-500 font-mono z-10">
+                B{i + 1}
+              </span>
+
               {/* Iterate over seats within the bench */}
               {Array.from({ length: benchType }, (_, sIndex) => {
                 const coordinate = `${row}-${col}-${sIndex}`;
                 
-                // 3. Status Lookup and Consolidation
                 const { isManuallyUnavailable, isAssigned, assignment } = 
                   getSeatData(roomId, coordinate, seatMap, roomSeats);
 
-                // 4. Conditional Styling & Text Logic (Concise)
                 const isUnavailable = isManuallyUnavailable || !available;
-                const bgColor = isUnavailable 
-                  ? '#ef4444' // Red: Unavailable
-                  : isAssigned
-                    ? classColorMap[assignment!.classId] || '#9ca3af' // Class Color: Assigned
-                    : '#808080'; // Blue: Available
+                
+                // Determine seat visuals
+                let seatStyle: React.CSSProperties = {};
+                let seatContent: string | JSX.Element;
+                let seatTitle: string;
+                let seatClassName = 'text-gray-700';
 
-                const text = isUnavailable ? 'X' : isAssigned ? assignment!.studentId : `${sIndex + 1}`;
+                if (isUnavailable) {
+                    seatStyle.backgroundColor = '#f87171'; // Softer red
+                    seatClassName = 'text-white font-extrabold';
+                    seatTitle = 'Seat is manually marked UNABLE';
+                    seatContent = 'X';
+                } else if (isAssigned) {
+                    const classColor = classColorMap[assignment!.classId] || '#9ca3af';
+                    seatStyle.backgroundColor = classColor;
+                    seatClassName = 'text-white font-bold shadow-md';
+                    seatTitle = `Assigned: ${assignment!.studentId} (${assignment!.classId})`;
+                    seatContent = assignment!.studentId;
+                } else {
+                    // Available seat
+                    seatStyle.backgroundColor = '#e5e7eb'; // Light grey
+                    seatClassName = 'text-gray-600 font-medium';
+                    seatTitle = 'Available (Click to mark unavailable)';
+                    seatContent = `${sIndex + 1}`;
+                }
+
+                const toggleableClass = isUnavailable 
+                  ? 'cursor-pointer hover:shadow-lg' 
+                  : 'cursor-pointer hover:scale-[1.05] hover:shadow-xl';
+
+                const baseSeatClass = `flex-1 flex items-center justify-center text-xs transition-all duration-150 rounded-lg m-[2px]`;
                 
                 return (
                   <div
                     key={sIndex}
-                    className={`flex-1 flex items-center justify-center text-white text-xs font-semibold cursor-pointer ${
-                      sIndex !== benchType - 1 ? 'border-r border-white/30' : ''
-                    }`}
-                    style={{ backgroundColor: bgColor }}
-                    // 5. Direct Event Handler
+                    className={`${baseSeatClass} ${seatClassName} ${toggleableClass}`}
+                    style={seatStyle}
                     onClick={() => onSeatToggle(roomId, coordinate)}
-                    title={isManuallyUnavailable ? 'Click to mark available' : 'Click to mark unavailable'}
+                    title={seatTitle}
                   >
-                    {text}
+                    {seatContent}
                   </div>
                 );
               })}
-              {/* Bench Number Label */}
-              <span className="absolute top-1 left-1 text-[10px] text-white bg-gray-700 px-1 rounded">
-                B{i + 1}
-              </span>
             </div>
           );
         })}
@@ -138,3 +158,4 @@ const RoomCard: React.FC<Props> = ({
 };
 
 export default RoomCard;
+  

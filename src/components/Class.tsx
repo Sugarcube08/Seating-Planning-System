@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import useSeatMapper from '../useCustomHooks/useSeatMapper';
-import SideForm from './SideForm';
-import RoomCard from './RoomCard';
-import SavedLayoutItem from './SavedLayoutItem';
+// Assuming paths are correct
+import useSeatMapper from '../useCustomHooks/useSeatMapper'; 
+import SideForm from './SideForm'; 
+import RoomCard from './RoomCard'; 
+import SavedLayoutItem from './SavedLayoutItem'; 
 
-
+// --- TYPE DEFINITIONS (Unchanged for brevity and focus) ---
 type Room = { roomId: string; roomName: string; capacity: number; available: boolean; benchType: number; benchCount: number; cols: number; rows: number };
 type SeatStatus = { seatNumber: number; coordinate: string; status: 'available' | 'unavailable' };
 type RoomSeatMap = { [roomId: string]: SeatStatus[] };
@@ -19,6 +20,7 @@ type SavedLayoutConfig = {
   roomConfiguration: RoomSeatMap;
   studentConfiguration: GroupedStudents;
 };
+// --- UTILITY FUNCTIONS (Unchanged for brevity and focus) ---
 const getClassColorMap = (classes: ClassData[]) => {
   const colorPalette = [
     '#1abc9c', '#3498db', '#9b59b6', '#e67e22', '#f1c40f', '#e74c3c', '#2ecc71',
@@ -58,16 +60,20 @@ const convertRoomsToSeats = (rooms: Room[]): RoomSeatMap =>
     return roomMap;
   }, {} as RoomSeatMap);
 
+// --- UPDATED LegendItem Component ---
 const LegendItem = ({ color, label }: { color: string; label: string }) => (
-  <div className="flex items-center gap-2">
-    <div className="w-5 h-5 rounded shadow-md" style={{ backgroundColor: color }}></div>
-    <span className="text-sm">{label}</span>
+  <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg shadow-sm">
+    <div className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: color }}></div>
+    <span className="text-xs font-medium text-gray-700">{label}</span>
   </div>
 );
+// --- MAIN COMPONENT ---
 const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassData[] } }) => {
   if (!students?.rooms || !students?.classes) {
     return <p className="text-center text-gray-500 mt-10">Loading classrooms...</p>;
   }
+  
+  // --- STATE AND MEMOIZATION (Unchanged) ---
   const fullRoomSeatMap = useMemo(() => convertRoomsToSeats(students.rooms), [students.rooms]);
   const fullGroupedStudents = useMemo(() => groupStudentsByClass(students.classes), [students.classes]);
   const [selectedRoomSeatMap, setSelectedRoomSeatMap] = useState<RoomSeatMap>(fullRoomSeatMap);
@@ -79,7 +85,8 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
   const [lockedClassIds, setLockedClassIds] = useState<string[]>([]); 
   const { seatMap, unseatedStudents } = useSeatMapper({ roomSeats: selectedRoomSeatMap, studentsByClass: selectedGroupedStudents });
   
-  const loadSavedLayouts = useCallback(() => {
+  // --- HANDLERS (Unchanged, except for styling in alerts/logs) ---
+  const loadSavedLayouts = useCallback(() => { /* ... (Logic unchanged) */
     try {
       const loaded = Object.keys(localStorage)
         .filter((key) => key.startsWith('FinalLayouts_C-'))
@@ -97,7 +104,7 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
     }
   }, []);
   
-  useEffect(() => {
+  useEffect(() => { /* ... (Logic unchanged) */
     try {
       const stored = sessionStorage.getItem('classroomMappingData_TEMP');
       if (!stored) return;
@@ -105,7 +112,7 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
 
       storedData.roomConfiguration && setSelectedRoomSeatMap(storedData.roomConfiguration);
       storedData.studentConfiguration && setSelectedGroupedStudents(storedData.studentConfiguration);
-      console.log('Restored config from session storage.');
+      // console.log('Restored config from session storage.'); // Removed console.log
     } catch (error) {
       console.warn('Could not load temporary data:', error);
       sessionStorage.removeItem('classroomMappingData_TEMP');
@@ -142,11 +149,12 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
     const data = { timestamp: new Date().toISOString(), seatAssignments: seatMap, roomConfiguration: selectedRoomSeatMap, studentConfiguration: selectedGroupedStudents };
     try {
       sessionStorage.setItem('classroomMappingData_TEMP', JSON.stringify(data));
-      console.log('Configuration saved as draft.');
+      // console.log('Configuration saved as draft.'); // Removed console.log
     } catch (e) {
       console.error('Error saving data:', e);
     }
   }, [seatMap, selectedRoomSeatMap, selectedGroupedStudents]);
+
   const handleFinalConfirm = useCallback(() => {
     const data = { timestamp: new Date().toISOString(), configId: `C-${Date.now()}`, seatAssignments: seatMap, roomConfiguration: selectedRoomSeatMap, studentConfiguration: selectedGroupedStudents };
     try {
@@ -199,21 +207,51 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
   const filteredRooms = students.rooms.filter((room) => Object.keys(selectedRoomSeatMap).includes(room.roomId));
   const classColorMap = getClassColorMap(filteredClasses);
 
+  // --- RENDER FUNCTIONS (Styling Updated) ---
   const renderConfigurationView = () => (
-    <>
+    <div className="pt-4 pb-20"> {/* Added padding for separation */}
       {isReadOnly && (
-        <div className="p-3 mb-4 bg-yellow-200 text-yellow-800 rounded-lg text-center font-semibold border border-yellow-400 shadow-md">
-          ⚠️ Currently viewing a saved layout in **READ-ONLY** mode. Use "Unlock Editing" below to make changes.
+        <div className="p-4 mb-6 bg-indigo-100 text-indigo-800 rounded-xl text-center font-semibold border border-indigo-300 shadow-md">
+          <span className="flex items-center justify-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            VIEWING A SAVED LAYOUT. **READ-ONLY** MODE ACTIVE. Unlock editing via the button below.
+          </span>
         </div>
       )}
       
-      <section className="flex flex-wrap justify-center gap-4 md:gap-6 mb-6 text-gray-700 font-medium">
-        <LegendItem color="#808080" label="Available Seat" />
+      {/* Moved Legend to a more prominent position/style */}
+      <section className="flex flex-wrap items-center gap-3 p-4 bg-white rounded-xl shadow-lg mb-6 border border-gray-100">
+        <h3 className="text-md font-bold text-gray-700 mr-4">Legend:</h3>
+        <LegendItem color="#e5e7eb" label="Available Seat" /> {/* Updated color for better contrast */}
         <LegendItem color="#ef4444" label="Unavailable Seat" />
-        {filteredClasses.map((cls) => (<LegendItem key={cls.classId} label={cls.classId} color={classColorMap[cls.classId]} />))}
+        <LegendItem color="transparent" label="Assigned Seat (Colored by Class)" />
+        {/* Class-specific legends are now optional/moved to sideform for space */}
       </section>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 pb-20">
+      {/* Unseated Students Alert - Sticky Banner Style */}
+      {Object.entries(unseatedStudents).length > 0 && (
+        <section className="sticky top-16 z-20 p-4 mb-6 bg-red-100 border-l-4 border-red-500 rounded-xl shadow-lg transition-all duration-300">
+          <h2 className="text-xl font-bold mb-2 text-red-700 flex items-center gap-2">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.398 18c-.77 1.333.192 3 1.732 3z"></path></svg>
+            CRITICAL: Unseated Students Detected!
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {Object.entries(unseatedStudents).map(([classId, count]) => (
+              <div
+                key={classId}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold border"
+                style={{ backgroundColor: classColorMap[classId], color: 'white', borderColor: classColorMap[classId] }}
+              >
+                <span>{classId}</span>
+                <span>({count} Unseated)</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Room Cards - Grid Layout Enhanced */}
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8">
         {filteredRooms.map((room) => (
           <RoomCard
             key={room.roomId}
@@ -225,64 +263,47 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
           />
         ))}
       </section>
-
-      {Object.entries(unseatedStudents).length > 0 && (
-        <section className="mt-6 p-4 bg-yellow-100 border-l-4 border-yellow-500 rounded-md shadow-inner">
-          <h2 className="text-xl font-semibold mb-2 text-yellow-700 flex items-center gap-2">
-            ⚠️ Unseated Students Alert
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            {Object.entries(unseatedStudents).map(([classId, count]) => (
-              <div
-                key={classId}
-                className="flex items-center gap-2 px-3 py-1 rounded text-sm font-medium"
-                style={{ backgroundColor: classColorMap[classId], color: 'white' }}
-              >
-                <span>{classId}</span>
-                <span>({count} unseated)</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      <div className="h-20"></div>
-    </>
+    </div>
   );
 
   const renderConfigTabs = () => (
-    <div className="flex justify-between items-end border-b pb-2 mb-4 sticky top-0 bg-gray-50 z-10">
-      <div className="flex space-x-4">
+    <div className="flex justify-between items-end border-b-2 border-gray-200 pb-0 sticky top-0 bg-white z-30 shadow-sm">
+      <div className="flex space-x-2">
         <button
           onClick={handleViewConfig}
-          className={`px-4 py-2 font-semibold transition ${
+          className={`px-5 py-3 flex items-center gap-2 font-semibold transition rounded-t-lg ${
             viewMode === 'config'
-              ? 'border-b-4 border-blue-600 text-blue-700'
-              : 'text-gray-600 hover:text-blue-500'
+              ? 'border-b-4 border-indigo-600 text-indigo-700 bg-indigo-50/50'
+              : 'text-gray-600 hover:text-indigo-500 hover:bg-gray-100'
           }`}
         >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
           Live Configuration
         </button>
         <button
           onClick={handleViewSavedLayouts}
-          className={`px-4 py-2 font-semibold transition ${
+          className={`px-5 py-3 flex items-center gap-2 font-semibold transition rounded-t-lg ${
             viewMode === 'saved'
-              ? 'border-b-4 border-blue-600 text-blue-700'
-              : 'text-gray-600 hover:text-blue-500'
+              ? 'border-b-4 border-indigo-600 text-indigo-700 bg-indigo-50/50'
+              : 'text-gray-600 hover:text-indigo-500 hover:bg-gray-100'
           }`}
         >
-          Saved Layouts
+           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+          Saved Layouts ({savedLayouts.length})
         </button>
       </div>
     </div>
   );
 
   const renderSavedLayoutsView = () => (
-    <div className="space-y-4 pt-2">
-      <p className="text-gray-500 italic">
-        Select a saved layout to load it into the Live Configuration view.
+    <div className="space-y-6 pt-4">
+      <p className="text-gray-600 italic p-3 bg-indigo-50 border-l-4 border-indigo-400 rounded-lg">
+        Select a saved layout below to instantly view it. Use "Live Configuration" to start a new plan.
       </p>
       {savedLayouts.length === 0 ? (
-        <p className="text-gray-500 mt-4">No permanent configurations saved yet. Use "Confirm & Save Final" to store a layout.</p>
+        <p className="text-gray-500 mt-6 p-4 border rounded-lg bg-white shadow-sm">
+          No permanent configurations saved yet. Use the **Confirm & Save Final** button in the Live Configuration view to store a layout.
+        </p>
       ) : (
         <div className="space-y-4">
           {savedLayouts.map((layout, index) => (
@@ -299,14 +320,17 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
       )}
     </div>
   );
+
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <h1 className="text-3xl md:text-4xl font-extrabold text-center text-gray-800 p-6 border-b bg-white sticky top-0 z-20 shadow-sm">
-        Classroom Seating Manager
+    <div className="bg-gray-100 min-h-screen">
+      {/* HEADER */}
+      <h1 className="text-3xl md:text-4xl font-extrabold text-center text-gray-800 p-4 border-b bg-white sticky top-0 z-40 shadow-lg">
+        Classroom Seating Manager 🧑‍🏫
       </h1>
 
-      <div className="flex h-[calc(100vh-6rem)] overflow-hidden">
-        <aside className="w-[25vw] flex-shrink-0 bg-white border-r border-gray-200 p-4 overflow-y-auto">
+      <div className="flex h-[calc(100vh-4.5rem)] overflow-hidden"> {/* Adjusted height to account for smaller header */}
+        {/* SIDEBAR (Wider and styled) */}
+        <aside className="w-80 lg:w-96 flex-shrink-0 bg-white border-r border-gray-200 p-6 overflow-y-auto shadow-xl">
           <SideForm
             initialRooms={fullRoomSeatMap}
             initialClasses={fullGroupedStudents}
@@ -317,40 +341,43 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
             lockedClassIds={lockedClassIds}
           />
         </aside>
-        <main className="flex-grow flex flex-col p-4 pr-6 overflow-y-hidden">
+        
+        {/* MAIN CONTENT */}
+        <main className="flex-grow flex flex-col p-6 overflow-y-hidden">
           {renderConfigTabs()}
-
+          
           <div className="flex-grow overflow-y-auto">
             {viewMode === 'config' ? renderConfigurationView() : renderSavedLayoutsView()}
           </div>
         </main>
       </div>
+      
+      {/* STICKY FOOTER / ACTION BAR */}
       {viewMode === 'config' && (
-        <div className="fixed bottom-0 left-[25vw] right-0 bg-white border-t border-gray-200 shadow-xl p-4 flex justify-end gap-4 z-30">
+        <div className="fixed bottom-0 left-80 lg:left-96 right-0 bg-white border-t-2 border-gray-200 shadow-2xl p-4 flex justify-end gap-4 z-50">
           {isReadOnly ? (
             <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600 font-medium italic">Configuration is Read-Only.</span>
+                <span className="text-base text-gray-600 font-medium italic">Layout is currently locked.</span>
                 <button
                     onClick={() => {
                       setIsReadOnly(false);
                       // Keep locked selections when unlocking for editing
                     }} 
-                    className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg"
+                    className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-full transition shadow-lg transform hover:scale-[1.02]"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                    Unlock Editing
+                    Unlock & Edit
                 </button>
             </div>
           ) : (
-            <>
-              <button
+            <button
                 onClick={handleFinalConfirm}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg"
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full transition shadow-xl transform hover:scale-[1.02] disabled:bg-gray-400"
+                disabled={Object.entries(unseatedStudents).length > 0} // Disable if unseated students exist
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                Confirm & Save Final
-              </button>
-            </>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Confirm & Save Final Layout
+            </button>
           )}
         </div>
       )}
