@@ -106,14 +106,13 @@ const RoomCard: React.FC<Props> = ({
 
                 const isUnavailable = isManuallyUnavailable || !available;
                 
-                // Determine seat visuals
                 let seatStyle: React.CSSProperties = {};
                 let seatContent: string | JSX.Element;
                 let seatTitle: string;
                 let seatClassName = 'text-gray-700';
 
                 if (isUnavailable) {
-                    seatStyle.backgroundColor = '#f87171'; // Softer red
+                    seatStyle.backgroundColor = '#f87171'; 
                     seatClassName = 'text-white font-extrabold';
                     seatTitle = 'Seat is manually marked UNABLE';
                     seatContent = 'X';
@@ -124,7 +123,6 @@ const RoomCard: React.FC<Props> = ({
                     seatTitle = `Assigned: ${assignment!.studentId} (${assignment!.classId})`;
                     seatContent = assignment!.studentId;
                 } else {
-                    // Available seat
                     seatStyle.backgroundColor = '#e5e7eb'; // Light grey
                     seatClassName = 'text-gray-600 font-medium';
                     seatTitle = 'Available (Click to mark unavailable)';
