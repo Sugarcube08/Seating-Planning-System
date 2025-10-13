@@ -18,6 +18,10 @@ type SavedLayoutConfig = {
   roomConfiguration: RoomSeatMap;
   studentConfiguration: GroupedStudents;
 };
+type SeatAssignment = Record<string, Student>;
+
+const buildSeatKey = (roomId: string, seatNumber: number, coordinate: string) =>
+  `seat${seatNumber}:${roomId}:${coordinate}`;
 
 // --- UTILITY FUNCTIONS (Unchanged) ---
 const getClassColorMap = (classes: ClassData[]) => {
@@ -87,7 +91,71 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [lockedRoomIds, setLockedRoomIds] = useState<string[]>([]);
   const [lockedClassIds, setLockedClassIds] = useState<string[]>([]);
-  const { seatMap, unseatedStudents } = useSeatMapper({ roomSeats: selectedRoomSeatMap, studentsByClass: selectedGroupedStudents });
+  const [existingSeatMap, setExistingSeatMap] = useState<SeatAssignment>({});
+  const [currentLayoutKey, setCurrentLayoutKey] = useState<string | null>(null);
+  const [currentConfigId, setCurrentConfigId] = useState<string | null>(null);
+
+  const lockedSeatKeys = useMemo(() => new Set(Object.keys(existingSeatMap)), [existingSeatMap]);
+
+  const assignedStudentIdsByClass = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    Object.values(existingSeatMap).forEach(({ classId, studentId }) => {
+      if (!map.has(classId)) {
+        map.set(classId, new Set([studentId]));
+      } else {
+        map.get(classId)!.add(studentId);
+      }
+    });
+    return map;
+  }, [existingSeatMap]);
+
+  const seatMapperInput = useMemo(() => {
+    if (lockedSeatKeys.size === 0) {
+      return {
+        roomSeats: selectedRoomSeatMap,
+        studentsByClass: selectedGroupedStudents,
+      };
+    }
+
+    const processedRooms = Object.fromEntries(
+      Object.entries(selectedRoomSeatMap).map(([roomId, seats]) => [
+        roomId,
+        seats.map((seat) => {
+          const seatKey = buildSeatKey(roomId, seat.seatNumber, seat.coordinate);
+          if (lockedSeatKeys.has(seatKey)) {
+            return { ...seat, status: 'unavailable' as const };
+          }
+          return seat;
+        }),
+      ])
+    ) as RoomSeatMap;
+
+    const processedStudents = Object.fromEntries(
+      Object.entries(selectedGroupedStudents).map(([classId, students]) => {
+        const lockedIds = assignedStudentIdsByClass.get(classId);
+        if (!lockedIds?.size) {
+          return [classId, students];
+        }
+        return [classId, students.filter((student) => !lockedIds.has(student.studentId))];
+      })
+    ) as GroupedStudents;
+
+    return {
+      roomSeats: processedRooms,
+      studentsByClass: processedStudents,
+    };
+  }, [selectedRoomSeatMap, selectedGroupedStudents, lockedSeatKeys, assignedStudentIdsByClass]);
+
+  const { seatMap: generatedSeatAssignments, unseatedStudents } = useSeatMapper({
+    roomSeats: seatMapperInput.roomSeats,
+    studentsByClass: seatMapperInput.studentsByClass,
+    lockedAssignments: existingSeatMap,
+  });
+
+  const combinedSeatMap = useMemo(
+    () => ({ ...existingSeatMap, ...generatedSeatAssignments }),
+    [existingSeatMap, generatedSeatAssignments]
+  );
 
   // --- HANDLERS (Unchanged logic, minor alert/log style adjustment) ---
   const loadSavedLayouts = useCallback(() => {
@@ -114,22 +182,43 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
       const storedData = JSON.parse(stored);
       storedData.roomConfiguration && setSelectedRoomSeatMap(storedData.roomConfiguration);
       storedData.studentConfiguration && setSelectedGroupedStudents(storedData.studentConfiguration);
+      storedData.seatAssignments && setExistingSeatMap(storedData.seatAssignments);
     } catch (error) {
       console.warn('Could not load temporary data:', error);
       sessionStorage.removeItem('classroomMappingData_TEMP');
     }
   }, []);
 
-  const handleSeatToggle = useCallback((roomId: string, coordinate: string) => {
-    setSelectedRoomSeatMap((prev) => ({
-      ...prev,
-      [roomId]: prev[roomId].map((seat) =>
-        seat.coordinate === coordinate
-          ? { ...seat, status: seat.status === 'available' ? 'unavailable' : 'available' }
-          : seat
-      ),
-    }));
-  }, []);
+  const handleSeatToggle = useCallback(
+    (roomId: string, coordinate: string) => {
+      setSelectedRoomSeatMap((prev) => {
+        const roomSeats = prev[roomId];
+        if (!roomSeats) {
+          return prev;
+        }
+
+        const targetSeat = roomSeats.find((seat) => seat.coordinate === coordinate);
+        if (!targetSeat) {
+          return prev;
+        }
+
+        const seatKey = buildSeatKey(roomId, targetSeat.seatNumber, targetSeat.coordinate);
+        if (existingSeatMap[seatKey]) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [roomId]: roomSeats.map((seat) =>
+            seat.coordinate === coordinate
+              ? { ...seat, status: seat.status === 'available' ? 'unavailable' : 'available' }
+              : seat
+          ),
+        };
+      });
+    },
+    [existingSeatMap]
+  );
 
   const handleConfigurationUpdate = useCallback(
     (newRooms: RoomSeatMap, newClasses: GroupedStudents) => {
@@ -142,24 +231,51 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
       setSelectedGroupedStudents(newClasses);
       setViewMode('config');
       setIsReadOnly(false);
+
+      const allowedSeatKeys = new Set<string>();
+      Object.entries(updatedRooms).forEach(([roomId, seats]) => {
+        seats.forEach((seat) => {
+          allowedSeatKeys.add(buildSeatKey(roomId, seat.seatNumber, seat.coordinate));
+        });
+      });
+      const allowedClassIds = new Set(Object.keys(newClasses));
+
+      setExistingSeatMap((prev) => {
+        if (!Object.keys(prev).length) return prev;
+        const next: SeatAssignment = {};
+        Object.entries(prev).forEach(([seatKey, assignment]) => {
+          if (allowedSeatKeys.has(seatKey) && allowedClassIds.has(assignment.classId)) {
+            next[seatKey] = assignment;
+          }
+        });
+        return next;
+      });
+      setLockedRoomIds([]);
+      setLockedClassIds([]);
     },
     [selectedRoomSeatMap, fullRoomSeatMap]
   );
 
   const handlePreviewAndTempSave = useCallback(() => {
-    const data = { timestamp: new Date().toISOString(), seatAssignments: seatMap, roomConfiguration: selectedRoomSeatMap, studentConfiguration: selectedGroupedStudents };
+    const data = {
+      timestamp: new Date().toISOString(),
+      seatAssignments: combinedSeatMap,
+      roomConfiguration: selectedRoomSeatMap,
+      studentConfiguration: selectedGroupedStudents,
+    };
     try {
       sessionStorage.setItem('classroomMappingData_TEMP', JSON.stringify(data));
     } catch (e) {
       console.error('Error saving data:', e);
     }
-  }, [seatMap, selectedRoomSeatMap, selectedGroupedStudents]);
+  }, [combinedSeatMap, selectedRoomSeatMap, selectedGroupedStudents]);
 
   const handleFinalConfirm = useCallback(() => {
-    const configId = `C-${Date.now()}`;
+    const configId = currentConfigId ?? `C-${Date.now()}`;
+    const storageKey = currentLayoutKey ?? `FinalLayouts_${configId}`;
     const timestamp = new Date().toISOString();
     const assignedRoomIds = new Set(
-      Object.keys(seatMap).map(seatKey => seatKey.split(':')[1])
+      Object.keys(combinedSeatMap).map(seatKey => seatKey.split(':')[1])
     );
     const cleanRoomConfiguration = Object.keys(selectedRoomSeatMap).reduce((acc, roomId) => {
       if (assignedRoomIds.has(roomId)) {
@@ -170,28 +286,45 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
     const data = {
       timestamp: timestamp,
       configId: configId,
-      seatAssignments: seatMap,
+      seatAssignments: combinedSeatMap,
       roomConfiguration: cleanRoomConfiguration,
       studentConfiguration: selectedGroupedStudents
     };
 
     try {
-      localStorage.setItem(`FinalLayouts_${configId}`, JSON.stringify(data));
+      localStorage.setItem(storageKey, JSON.stringify(data));
       sessionStorage.removeItem('classroomMappingData_TEMP');
-
-      alert('Final seating plan confirmed and permanently saved! Configuration ID: ' + configId);
-      window.location.reload();
-
+      setExistingSeatMap(combinedSeatMap);
+      setCurrentLayoutKey(storageKey);
+      setCurrentConfigId(configId);
+      setIsReadOnly(true);
+      setLockedRoomIds(Object.keys(selectedRoomSeatMap));
+      setLockedClassIds(Object.keys(selectedGroupedStudents));
+      loadSavedLayouts();
+      alert(
+        currentLayoutKey
+          ? `Configuration ${configId} successfully updated.`
+          : 'Final seating plan confirmed and permanently saved! Configuration ID: ' + configId
+      );
     } catch (e) {
       console.error('Error saving final data:', e);
       alert('Failed to save final mapping.');
     }
   }, [
-    seatMap,
+    combinedSeatMap,
     selectedRoomSeatMap,
-    selectedGroupedStudents
+    selectedGroupedStudents,
+    currentLayoutKey,
+    currentConfigId,
+    loadSavedLayouts
   ]);
   const handleViewSavedLayouts = useCallback(() => { loadSavedLayouts(); setViewMode('saved'); }, [loadSavedLayouts]);
+  const handleUnlockEditing = useCallback(() => {
+    setIsReadOnly(false);
+    setLockedRoomIds([]);
+    setLockedClassIds([]);
+  }, []);
+
   const handleViewConfig = useCallback(() => {
     setViewMode('config');
     setIsReadOnly(false);
@@ -214,6 +347,9 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
     setSelectedGroupedStudents(layout.studentConfiguration);
     setViewMode('config');
     setIsReadOnly(true);
+    setExistingSeatMap(layout.seatAssignments);
+    setCurrentLayoutKey(layout.key);
+    setCurrentConfigId(layout.configId);
 
     const layoutRoomIds = Object.keys(layout.roomConfiguration);
     const layoutClassIds = Object.keys(layout.studentConfiguration);
@@ -281,9 +417,10 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
             key={room.roomId}
             room={room}
             roomSeatMap={selectedRoomSeatMap}
-            seatMap={seatMap}
+            seatMap={combinedSeatMap}
             classColorMap={classColorMap}
             onSeatToggle={isReadOnly ? () => { } : handleSeatToggle}
+            lockedSeatKeys={lockedSeatKeys}
           />
         ))}
       </section>
@@ -413,7 +550,7 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
             <div className="flex items-center gap-4">
               <span className="text-base text-gray-600 font-medium italic">Layout is currently locked.</span>
               <button
-                onClick={() => { setIsReadOnly(false); }}
+                onClick={handleUnlockEditing}
                 className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-full transition shadow-lg transform hover:scale-[1.02]"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>

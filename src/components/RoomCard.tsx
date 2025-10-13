@@ -12,6 +12,7 @@ type Props = {
   seatMap: Record<string, Student>;
   classColorMap: Record<string, string>;
   onSeatToggle: (roomId: string, coordinate: string) => void;
+  lockedSeatKeys?: Set<string>;
 };
 
 /**
@@ -20,13 +21,13 @@ type Props = {
 const getSeatData = (roomId: string, coordinate: string, seatMap: Record<string, Student>, roomSeats: SeatStatus[]) => {
   const seatStatus = roomSeats.find((s) => s.coordinate === coordinate);
   const seatNumber = seatStatus?.seatNumber ?? 0;
-  // Seat assignment key is unique across all rooms/seats
-  const assignmentKey = `seat${seatNumber}:${roomId}:${coordinate}`;
-  
+  const seatKey = `seat${seatNumber}:${roomId}:${coordinate}`;
   return {
+    seatKey,
+    seatNumber,
     isManuallyUnavailable: seatStatus?.status === 'unavailable',
-    isAssigned: !!seatMap[assignmentKey],
-    assignment: seatMap[assignmentKey],
+    isAssigned: !!seatMap[seatKey],
+    assignment: seatMap[seatKey],
   };
 };
 
@@ -35,7 +36,8 @@ const RoomCard: React.FC<Props> = ({
   roomSeatMap, 
   seatMap, 
   classColorMap, 
-  onSeatToggle 
+  onSeatToggle,
+  lockedSeatKeys = new Set(),
 }) => {
   const { roomId, roomName, rows, cols, benchType, available } = room;
   const totalCells = rows * cols;
@@ -101,10 +103,11 @@ const RoomCard: React.FC<Props> = ({
               {Array.from({ length: benchType }, (_, sIndex) => {
                 const coordinate = `${row}-${col}-${sIndex}`;
                 
-                const { isManuallyUnavailable, isAssigned, assignment } = 
+                const { seatKey, seatNumber, isManuallyUnavailable, isAssigned, assignment } = 
                   getSeatData(roomId, coordinate, seatMap, roomSeats);
 
                 const isUnavailable = isManuallyUnavailable || !available;
+                const isLockedAssignment = lockedSeatKeys.has(seatKey);
                 
                 let seatStyle: React.CSSProperties = {};
                 let seatContent: string | JSX.Element;
@@ -120,27 +123,37 @@ const RoomCard: React.FC<Props> = ({
                     const classColor = classColorMap[assignment!.classId] || '#9ca3af';
                     seatStyle.backgroundColor = classColor;
                     seatClassName = 'text-white font-bold shadow-md';
-                    seatTitle = `Assigned: ${assignment!.studentId} (${assignment!.classId})`;
+                    seatTitle = isLockedAssignment
+                      ? `Locked Assignment: ${assignment!.studentId} (${assignment!.classId})`
+                      : `Assigned: ${assignment!.studentId} (${assignment!.classId})`;
                     seatContent = assignment!.studentId;
                 } else {
                     seatStyle.backgroundColor = '#e5e7eb'; // Light grey
                     seatClassName = 'text-gray-600 font-medium';
-                    seatTitle = 'Available (Click to mark unavailable)';
+                    seatTitle = isLockedAssignment
+                      ? 'Seat locked from manual updates'
+                      : 'Available (Click to mark unavailable)';
                     seatContent = `${sIndex + 1}`;
                 }
 
-                const toggleableClass = isUnavailable 
-                  ? 'cursor-pointer hover:shadow-lg' 
-                  : 'cursor-pointer hover:scale-[1.05] hover:shadow-xl';
+                const toggleableClass = isLockedAssignment
+                  ? 'cursor-not-allowed'
+                  : isUnavailable
+                    ? 'cursor-pointer hover:shadow-lg'
+                    : 'cursor-pointer hover:scale-[1.05] hover:shadow-xl';
 
                 const baseSeatClass = `flex-1 flex items-center justify-center text-xs transition-all duration-150 rounded-lg m-[2px]`;
+                const handleSeatClick = () => {
+                  if (isLockedAssignment) return;
+                  onSeatToggle(roomId, coordinate);
+                };
                 
                 return (
                   <div
                     key={sIndex}
                     className={`${baseSeatClass} ${seatClassName} ${toggleableClass}`}
                     style={seatStyle}
-                    onClick={() => onSeatToggle(roomId, coordinate)}
+                    onClick={handleSeatClick}
                     title={seatTitle}
                   >
                     {seatContent}
