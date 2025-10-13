@@ -5,7 +5,11 @@ type RoomSeatMap = { [roomId: string]: SeatStatus[] };
 type Student = { studentId: string; classId: string };
 type GroupedStudents = { [classId: string]: Student[] };
 type SeatAssignment = { [seatKey: string]: Student };
-type UseSeatMapperProps = { roomSeats: RoomSeatMap; studentsByClass: GroupedStudents };
+type UseSeatMapperProps = {
+  roomSeats: RoomSeatMap;
+  studentsByClass: GroupedStudents;
+  lockedAssignments?: SeatAssignment;
+};
 
 type SeatMapperResult = {
   seatMap: SeatAssignment;
@@ -24,10 +28,12 @@ const getBenchInfo = (coordinate: string) => {
 const getPreferredIndex = (
   classId: string,
   currentRoomId: string,
+  benchKey: string,
   benchType: number,
   sortedClassIds: string[],
   classRoomIndex: Map<string, { roomId: string | null; preferredIndex: number | null }>,
-  unseatedStudents: Map<string, number> // <-- NEW: Used to check if class is active
+  unseatedStudents: Map<string, number>, // <-- NEW: Used to check if class is active
+  lockedBenchIndexes: Map<string, Set<number>>
 ): number => {
   const numClasses = sortedClassIds.length;
 
@@ -40,6 +46,11 @@ const getPreferredIndex = (
 
   // Standard Case: Find the lowest unoccupied preferred index across the current room
   const usedIndexesInRoom = new Set<number>();
+
+  const lockedIndexes = lockedBenchIndexes.get(`${currentRoomId}:${benchKey}`);
+  if (lockedIndexes) {
+    lockedIndexes.forEach((idx) => usedIndexesInRoom.add(idx));
+  }
 
   for (const otherClassId of sortedClassIds) {
     const { roomId: otherRoomId, preferredIndex: idx } = classRoomIndex.get(otherClassId)!;
@@ -61,11 +72,23 @@ const getPreferredIndex = (
 };
 
 
-const useSeatMapper = ({ roomSeats, studentsByClass }: UseSeatMapperProps): SeatMapperResult => {
+const useSeatMapper = ({ roomSeats, studentsByClass, lockedAssignments = {} }: UseSeatMapperProps): SeatMapperResult => {
   console.info(roomSeats, studentsByClass);
   return useMemo(() => {
     const seatMap: SeatAssignment = {};
     const allSeats: (SeatStatus & { roomId: string })[] = [];
+    const lockedBenchIndexes = new Map<string, Set<number>>();
+    Object.keys(lockedAssignments).forEach((seatKey) => {
+      const parts = seatKey.split(':');
+      if (parts.length < 3) return;
+      const roomId = parts[1];
+      const coordinate = parts[2];
+      const { benchKey, seatIndex } = getBenchInfo(coordinate);
+      const key = `${roomId}:${benchKey}`;
+      const set = lockedBenchIndexes.get(key) ?? new Set<number>();
+      set.add(seatIndex);
+      lockedBenchIndexes.set(key, set);
+    });
 
     // Helper to extract the numeric part for strict sorting (e.g., "R109" -> 109)
     const extractRoomNumber = (roomId: string): number => {
@@ -90,25 +113,24 @@ const useSeatMapper = ({ roomSeats, studentsByClass }: UseSeatMapperProps): Seat
     });
 
     // 2. Room Sorting: Enforce strict numerical order
-    allSeats.sort(
-      (a, b) => {
-        // Primary Sort: Compare extracted room numbers
-        const roomNumA = extractRoomNumber(a.roomId);
-        const roomNumB = extractRoomNumber(b.roomId);
+    allSeats.sort((a, b) => {
+      const roomNumA = extractRoomNumber(a.roomId);
+      const roomNumB = extractRoomNumber(b.roomId);
 
-        if (roomNumA !== roomNumB) {
-          return roomNumA - roomNumB;
-        }
-
-        // Secondary Sort: If room numbers are identical, fall back to default string comparison.
-        if (a.roomId !== b.roomId) {
-            return a.roomId.localeCompare(b.roomId);
-        }
-        
-        // Tertiary Sort: Coordinate within the same room
-        return a.coordinate.localeCompare(b.coordinate);
+      if (roomNumA !== roomNumB) {
+        return roomNumA - roomNumB;
       }
-    );
+
+      if (a.roomId !== b.roomId) {
+        return a.roomId.localeCompare(b.roomId);
+      }
+
+      if (a.seatNumber !== b.seatNumber) {
+        return a.seatNumber - b.seatNumber;
+      }
+
+      return a.coordinate.localeCompare(b.coordinate);
+    });
     
     // --- Initialization ---
     const unseatedStudents = new Map<string, number>();
@@ -164,19 +186,30 @@ const useSeatMapper = ({ roomSeats, studentsByClass }: UseSeatMapperProps): Seat
           // Calculate the preferred index for this class in this room
           // CRITICAL: Passing unseatedStudents now ensures index reuse is possible.
           const newPreferredIndex = getPreferredIndex(
-            classId, currentRoomId, benchType, sortedClassIds, classRoomIndex, unseatedStudents 
+            classId,
+            currentRoomId,
+            benchKey,
+            benchType,
+            sortedClassIds,
+            classRoomIndex,
+            unseatedStudents,
+            lockedBenchIndexes
           );
 
           classRoomIndex.set(classId, { roomId: currentRoomId, preferredIndex: newPreferredIndex });
           preferredIndex = newPreferredIndex;
         }
-        
+
         // Assignment condition: Only assign if the current seat's index strictly matches the class's preference
         if (preferredIndex !== null && seatIndex === preferredIndex) {
           seatMap[seatKey] = studentToSeat;
           classLastBenchKey.set(classId, benchKey); // Lock the bench
           unseatedStudents.set(classId, remainingCount - 1); // Decrement count
-          assigned = true;
+          // Mark the assigned index as used in the lockedBenchIndexes
+          const key = `${currentRoomId}:${benchKey}`;
+          const set = lockedBenchIndexes.get(key) ?? new Set<number>();
+          set.add(seatIndex);
+          lockedBenchIndexes.set(key, set);
           break; // Move to the next seat
         }
       }
@@ -191,9 +224,9 @@ const useSeatMapper = ({ roomSeats, studentsByClass }: UseSeatMapperProps): Seat
         finalUnseatedStudents[classId] = remaining;
       }
     });
-
+    console.log(seatMap);
     return { seatMap, unseatedStudents: finalUnseatedStudents };
-  }, [roomSeats, studentsByClass]);
+  }, [roomSeats, studentsByClass, lockedAssignments]);
 };
 
 
