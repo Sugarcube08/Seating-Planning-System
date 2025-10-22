@@ -23,7 +23,7 @@ type SeatAssignment = Record<string, Student>;
 const buildSeatKey = (roomId: string, seatNumber: number, coordinate: string) =>
   `seat${seatNumber}:${roomId}:${coordinate}`;
 
-// --- UTILITY FUNCTIONS (Unchanged) ---
+//  UTILITY FUNCTIONS (Unchanged) 
 const getClassColorMap = (classes: ClassData[]) => {
   const colorPalette = [
     '#1abc9c', '#3498db', '#9b59b6', '#e67e22', '#f1c40f', '#e74c3c', '#2ecc71',
@@ -63,7 +63,7 @@ const convertRoomsToSeats = (rooms: Room[]): RoomSeatMap =>
     return roomMap;
   }, {} as RoomSeatMap);
 
-// --- UPDATED LegendItem Component (Consistent Styling) ---
+//  UPDATED LegendItem Component (Consistent Styling) 
 const LegendItem = ({ color, label }: { color: string; label: string }) => (
   <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg shadow-sm">
     <div className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: color }}></div>
@@ -71,17 +71,15 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
   </div>
 );
 
-// --- MAIN COMPONENT ---
+//  MAIN COMPONENT 
 const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassData[] } }) => {
   if (!students?.rooms || !students?.classes) {
     return <p className="text-center text-gray-500 mt-10">Loading classrooms...</p>;
   }
 
-  // --- NEW STATE FOR RESPONSIVENESS (TOGGLE) ---
+  //  NEW STATE FOR RESPONSIVENESS (TOGGLE) 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
-
-  // --- STATE AND MEMOIZATION (Existing) ---
   const fullRoomSeatMap = useMemo(() => convertRoomsToSeats(students.rooms), [students.rooms]);
   const fullGroupedStudents = useMemo(() => groupStudentsByClass(students.classes), [students.classes]);
   const [selectedRoomSeatMap, setSelectedRoomSeatMap] = useState<RoomSeatMap>(fullRoomSeatMap);
@@ -157,7 +155,7 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
     [existingSeatMap, generatedSeatAssignments]
   );
 
-  // --- HANDLERS (Unchanged logic, minor alert/log style adjustment) ---
+  //  HANDLERS (Unchanged logic, minor alert/log style adjustment) 
   const loadSavedLayouts = useCallback(() => {
     try {
       const loaded = Object.keys(localStorage)
@@ -482,7 +480,7 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* --- HEADER/NAVBAR (Includes Mobile Toggle Button) --- */}
+      {/*  HEADER/NAVBAR (Includes Mobile Toggle Button)  */}
       <header className="flex justify-between items-center text-3xl md:text-4xl font-extrabold text-gray-800 p-4 border-b bg-gray-200 sticky top-0 z-40 shadow-lg">
         <h1 className="text-2xl md:text-3xl font-extrabold text-indigo-800">
           Examination Seating Manager 🧑‍🏫
@@ -541,7 +539,6 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
         <div
           className={`
             fixed bottom-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl p-4 flex justify-end gap-4 z-50 transition-all duration-300
-            // Dynamic width/position based on sidebar state
             left-0 
             lg:left-96 
           `}
@@ -560,7 +557,6 @@ const ClassLayout = ({ students }: { students: { rooms: Room[]; classes: ClassDa
           ) : (
             <button
               onClick={handleFinalConfirm}
-              // Updated color to Indigo for the primary action
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full transition shadow-xl transform hover:scale-[1.02] disabled:bg-gray-400"
               disabled={Object.entries(unseatedStudents).length > 0}
             >
