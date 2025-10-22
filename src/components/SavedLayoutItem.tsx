@@ -88,7 +88,6 @@ const SavedLayoutItem: React.FC<Props> = ({ layout, index, totalCount, onDelete,
                         <p><strong>Total Seats Assigned:</strong> {totalSeatsAssigned}</p>
                     </div>
                     
-                    {/* 2. Add the Export button */}
                     <button
                         onClick={handleExport}
                         disabled={totalSeatsAssigned === 0}
